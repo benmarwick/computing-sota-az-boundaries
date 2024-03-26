@@ -134,36 +134,28 @@ The raster tiles come from the [Amazon Web Services (AWS) Terrain Tiles](https:/
 ```{r, results='hide', cache=TRUE}
 # loop over each bounding box, get the DSM raster 
 # and find the AZ polygon and save as geoJSON
+
+# create a list to store some output from this loop
+loop_output <- vector("list", nrow(gjsf_elev))
+loop_output$this_summit_point <- NULL
+loop_output$bbx_ras <- NULL
+loop_output$this_summit_point_az <- NULL
+loop_output$poly_with_summit <- NULL
+
 #----------------------------------
 for(i in 1:nrow(gjsf_elev)){
   
 this_summit_point <- gjsf_elev[i, ]
+
+loop_output$this_summit_point[[i]] <- this_summit_point
   
 print(paste0("Starting work on the AZ for ", this_summit_point$id,
                "..."))
   
 # extract the bounding box for just this summit
 bbx_st_poly <- gjsf_elev_buf_sq_df[i, ]
-  
-# quick look at this one bbx in context
-ggplot()   +  
-  geom_sf(data = bbx_st_poly, colour = "red") +
-  geom_sf(data = gjsf_elev, size = 0.1) +
-  theme_minimal() +
-  coord_sf() +
-  annotation_scale(location = "bl", 
-                   width_hint = 0.5) 
 
-# quick look at this bbx by itself
-ggplot()   +  
-  geom_sf(data = bbx_st_poly, colour = "red") +
-  geom_sf(data = this_summit_point, size = 0.1) +
-  theme_minimal() +
-  coord_sf() +
-  annotation_scale(location = "bl", 
-                   width_hint = 0.5) 
-
-#  Get the raster data from AWS
+# Get the raster data from AWS
 # Elevation units are in meters.
 bbx_ras =
   elevatr::get_elev_raster(bbx_st_poly %>% 
@@ -177,15 +169,14 @@ bbx_ras =
                            z = 14, # this is the max possible
                            prj =  "WGS84")
 
+loop_output$bbx_ras[[i]] <- bbx_ras
+
 # Create a function to process the elevation raster to get the AZ polygon
 # we make a function so we can re-use it later
 get_az_polygon_fn <- function(bbx_ras = bbx_ras){
 
 # get max elev from raster
 bbx_ras_max <- maxValue(bbx_ras)
-
-print(paste0("Max elevation in raster is ", round(bbx_ras_max, 2),
-             " and summit elev is ", this_summit_point$elev_m))
 
 # find area that is in AZ in meters. If the SOTA summit elev is 
 # greater than the max elev in the raster, this is an error, so
@@ -221,27 +212,6 @@ poly_with_summit <-
             df_union_cast[which(col), ]
           })[[1]]
 
-  
-  # take a look at the summit and AZ
-plot_summit_and_az <- 
-  ggplot() +
-    geom_spatraster(data = rast(bbx_ras)) +
-    geom_sf(data = poly_with_summit,
-            colour ="red",
-            fill = NA) +
-    geom_point(data = this_summit_point,
-               aes(x, y)) + 
-    geom_text_repel(data = this_summit_point,
-                    aes( x, y,
-                         label = name),
-                    bg.color = "white",
-                    bg.r = 0.1) +
-    scale_fill_viridis_c(na.value = "white",
-                         name = "Elevation (m)") +
-    annotation_scale(location = "bl", width_hint = 0.5) +
-    coord_sf() +
-    theme_minimal(base_size = 10)
-
   # what is the longest linear dimension of this AZ polygon?
   # if it's the same as the bbox dimensions, then our bbox is 
   # probably too small and we need to get a bigger one
@@ -252,16 +222,22 @@ plot_summit_and_az <-
         st_distance %>% 
         max()
   
-  return(list(poly_with_summit = poly_with_summit,
-              poly_with_summit_max_linear_dim = poly_with_summit_max_linear_dim,
-              plot_summit_and_az = plot_summit_and_az))
+  return(list(this_summit_point_az = this_summit_point_az,
+              poly_with_summit = poly_with_summit,
+              poly_with_summit_max_linear_dim = poly_with_summit_max_linear_dim))
   
 }
 
+# run the function
 output <- get_az_polygon_fn(bbx_ras = bbx_ras)
+
+# collect some output
+loop_output$this_summit_point_az[[i]] <- output$this_summit_point_az
+loop_output$poly_with_summit[[i]] <- output$poly_with_summit
   
   class(output$poly_with_summit_max_linear_dim) <- "numeric"
   
+# check if we got the entire AZ or we need to compute on a larger raster
   if(output$poly_with_summit_max_linear_dim < sqrt(buffer_side_length)) {
     
     print(paste0("OK: the max linear dimenstion of the AZ computed for ",
@@ -275,7 +251,6 @@ output <- get_az_polygon_fn(bbx_ras = bbx_ras)
     print(paste0("Not OK: the max linear dimenstion of the AZ computed for ",
                  this_summit_point$id,
                  " is bigger than our bounding box. Trying a bigger bounding box..."))
-    
     
     bbx_st_poly_enlarged <- 
       bSquare(bbx_st_poly, 
@@ -297,6 +272,10 @@ output <- get_az_polygon_fn(bbx_ras = bbx_ras)
     # much enlarged area of raster elevation 
     output <- get_az_polygon_fn(bbx_ras = bbx_ras_enlarged)
     
+    # collect some output
+loop_output$this_summit_point_az[[i]] <- output$this_summit_point_az
+loop_output$poly_with_summit[[i]] <- output$poly_with_summit
+    
     print(paste0("Finished trying a bigger bounding box for ",
                  this_summit_point$id))
   }
@@ -312,11 +291,75 @@ geojsonio::geojson_write(output$poly_with_summit,
 }
 ```
 
+
+Take a look at all of the summits:
+
+```{r}
+
+this_summit_point_df <- bind_rows(loop_output$this_summit_point)
+this_summit_point_az_df <- bind_rows(loop_output$this_summit_point_az_df)
+poly_with_summit_df <- bind_rows(loop_output$poly_with_summit) %>% select(geometry)
+
+# take a look at the summits and AZs
+  ggplot() +
+    geom_sf(data = poly_with_summit_df) + 
+    geom_sf(data = this_summit_point_df,
+            colour ="red",
+            fill = NA,
+            size = 0.1) +
+    geom_text_repel(data = this_summit_point_df,
+                    aes( x, y,
+                         label = name),
+                    bg.color = "white",
+                    bg.r = 0.1,
+                    size = 1.5,
+                    segment.colour= "grey") +
+    scale_fill_viridis_c(na.value = "white",
+                         name = "Elevation (m)") +
+    annotation_scale(location = "bl", 
+                     width_hint = 0.5,
+                     pad_y = unit(0.1, "cm"),
+                     pad_x = unit(0.5, "cm"),
+                    style =  "ticks") +
+    coord_sf() +
+    theme_minimal(base_size = 8)
+```
+
 Take a look at one of the summits and the activation zone we have computed for it:
 
 ```{r}
-output$plot_summit_and_az
+# take a look at the summit and AZ
+  ggplot() +
+    geom_spatraster(data = rast(loop_output$bbx_ras[[1]])) +
+    geom_sf(data = loop_output$poly_with_summit[[1]],
+            colour ="red",
+            fill = NA) +
+    geom_point(data = loop_output$this_summit_point[[1]],
+               aes(x, y)) + 
+    geom_text_repel(data = loop_output$this_summit_point[[1]],
+                    aes( x, y,
+                         label = name),
+                    bg.color = "white",
+                    bg.r = 0.1) +
+    scale_fill_viridis_c(na.value = "white",
+                         name = "Elevation (m)") +
+    annotation_scale(location = "bl", 
+                     width_hint = 0.5,
+                     pad_y = unit(0.1, "cm"),
+                     pad_x = unit(0.5, "cm"),
+                    style =  "ticks") +
+    coord_sf() +
+    theme_minimal(base_size = 8)
 ```
+
+Take a look at the differences between summit elevation values in the SOTA data and in the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/). The differences in elevation of summits mean that some activation zones calculated here might not be accurate. 
+
+```{r}
+
+
+```
+
+
 
 Inspect all the summits and activation zones in our set. Import the GeoJSON files and display the summit points and activation zones polygons on an interactive map. 
 
@@ -342,7 +385,7 @@ summit_geometry <-
   select(summit, geometry)
 ```
 
-This code block makes an interactive map of the summits and activation zones. On GitHub this shows as a static image.
+This code block makes an interactive map of the summits and activation zones. On GitHub this shows as a static image. To run the code and use the interactive map in your web brower, [click here to open an instance of RStudio in your browser tab](https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio)
 
 ```{r}
 library(leaflet)
