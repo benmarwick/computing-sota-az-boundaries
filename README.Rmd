@@ -297,7 +297,7 @@ Take a look at all of the summits:
 ```{r}
 
 this_summit_point_df <- bind_rows(loop_output$this_summit_point)
-this_summit_point_az_df <- bind_rows(loop_output$this_summit_point_az_df)
+this_summit_point_az_df <- bind_rows(loop_output$this_summit_point_az)
 poly_with_summit_df <- bind_rows(loop_output$poly_with_summit) %>% select(geometry)
 
 # take a look at the summits and AZs
@@ -356,6 +356,13 @@ Take a look at the differences between summit elevation values in the SOTA data 
 
 ```{r}
 
+
+
+this_summit_point_az_df %>% 
+  mutate(diff_elev = bbx_ras_max - elev_m) %>% 
+ggplot() +
+  aes(diff_elev) +
+  geom_histogram() 
 
 ```
 
