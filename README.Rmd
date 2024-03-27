@@ -142,7 +142,7 @@ Here is a loop that takes each summit and its bounding box and:
 -   then check if the activation zone polygon has the same dimension as the buffer zone, if it does, make the buffer zone much bigger and repeat the steps above to properly handle summits with unusually large activation zones
 -   then write the polygon of the activation zone to a GeoJSON file
 
-The raster tiles come from the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/). The resolution is probably 7-10 m per pixel at the zoom level we are using here. More details on resolution and zoom level is still available in the [documentation on ground resolution](https://github.com/tilezen/joerd/blob/master/docs/data-sources.md#what-is-the-ground-resolution). These tiles can be browsed at https://eos.com/landviewer/
+The raster tiles come from the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/). The resolution is probably 5-7 m per pixel at the zoom level we are using here. More details on resolution and zoom level is still available in the [documentation on ground resolution](https://github.com/tilezen/joerd/blob/master/docs/data-sources.md#what-is-the-ground-resolution). These tiles can be browsed at https://eos.com/landviewer/
 
 This chunk of code takes several minutes to run and downloads raster tiles on each iteration of the loop. If you are viewing this in the [Binder](<https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio>) instance, you can skip this step and jump down to where me [inspect the data](#inspect)
 
@@ -462,7 +462,7 @@ summit_geometry <-
   select(summit, geometry)
 ```
 
-This code block makes an interactive map of the summits and activation zones. On GitHub this shows as a static image.
+This code block makes an interactive map of the summits and activation zones. On GitHub this shows as a static image. Here we have zoomed in on [W7W/KG-142 Union Hill](https://sotl.as/summits/W7W/KG-142) which is remarkable because it has a very large activation zone that includes an elementary school and recreational park at the north end.
 
 ```{r}
 library(leaflet)
@@ -484,7 +484,8 @@ leaflet() %>%
                    labelOptions = labelOptions(noHide = T, 
                                                direction = "top",
                                                offset = c(0, -15))) %>% 
-   setView(-122, 47.66,  zoom = 15)  
+   setView(-122, 47.66,  zoom = 15)  %>%
+  addScaleBar()
 
 
 l

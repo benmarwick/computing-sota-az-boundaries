@@ -181,7 +181,7 @@ Here is a loop that takes each summit and its bounding box and:
 
 The raster tiles come from the [Amazon Web Services (AWS) Terrain
 Tiles](https://registry.opendata.aws/terrain-tiles/). The resolution is
-probably 7-10 m per pixel at the zoom level we are using here. More
+probably 5-7 m per pixel at the zoom level we are using here. More
 details on resolution and zoom level is still available in the
 [documentation on ground
 resolution](https://github.com/tilezen/joerd/blob/master/docs/data-sources.md#what-is-the-ground-resolution).
@@ -421,7 +421,7 @@ computed for it:
 ![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
 <!-- 
-### Differences between summit elevation values in the SOTA data and in the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/).
+&#10;### Differences between summit elevation values in the SOTA data and in the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/).
 &#10;In developing this analysis I found that some summits have elevation values recorded in the SOTA data that are different from the elevation data in the Terrain Tiles. The differences in elevation of summits mean that some activation zones calculated here might not be accurate. In the plot below, the upper panel shows the full range of summits where the SOTA elevation differs from the Terrain Tiles, and the lower panel is a zoomed in view at -25m, 25m. The labelled summits, especially those in the top panel that deviate more than 20m, are ones where the activation zones computed here may be slightly inaccurate.
 &#10;
 ```r
@@ -516,7 +516,10 @@ summit_geometry <-
 ```
 
 This code block makes an interactive map of the summits and activation
-zones. On GitHub this shows as a static image.
+zones. On GitHub this shows as a static image. Here we have zoomed in on
+[W7W/KG-142 Union Hill](https://sotl.as/summits/W7W/KG-142) which is
+remarkable because it has a very large activation zone that includes an
+elementary school and recreational park at the north end.
 
 ``` r
 library(leaflet)
@@ -546,7 +549,8 @@ leaflet() %>%
                    labelOptions = labelOptions(noHide = T, 
                                                direction = "top",
                                                offset = c(0, -15))) %>% 
-   setView(-122, 47.66,  zoom = 15)  
+   setView(-122, 47.66,  zoom = 15)  %>%
+  addScaleBar()
 
 
 l
