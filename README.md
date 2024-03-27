@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# Computing Activation Zone Boundaries for [SOTA](https://www.sota.org.uk/) Summits
+# Computing Activation Zone Boundaries for [SOTA](https://www.sota.org.uk/) Summits in W7W-KG
 
 <!-- badges: start -->
 
@@ -13,9 +13,9 @@
 
 The goal of this repository is to generate polygons that indicate the
 [activation zones](https://www.sota.org.uk/Blog/2017/07/08/In-The-Zone)
-for [SOTA](https://www.sota.org.uk/) summits. Here is how the [SOTA
-FAQ](https://www.sota.org.uk/Joining-In/FAQs) defines the activation
-zone:
+for [SOTA](https://www.sota.org.uk/) summits in the W7W-KG area. Here is
+how the [SOTA FAQ](https://www.sota.org.uk/Joining-In/FAQs) defines the
+activation zone:
 
 > Q. What is the Activation Zone?
 
@@ -30,7 +30,30 @@ zone:
 > information. If you operate from outside the AZ, the activation is not
 > valid and will score no points.
 
-For now this project only does summits in the W7W-KG area.
+Prior work on computing activation zones includes:
+
+- the web app <https://activation.zone/> by [Ara
+  N6ARA](https://n6ara.com/) which uses 30m elevation data provided by
+  the [elevation Python package](https://pypi.org/project/elevation/).
+  On [sotl.as](https://sotl.as/)
+- activation zones are visible in the map view for HB/HB0 (calculated
+  using
+  [swissALTI3D](https://www.swisstopo.admin.ch/de/hoehenmodell-swissalti3d)
+  data from swisstopo (spatial resolution 0.5 m, accuracy ± 0.3 – 3 m
+  (1σ) depending on the region) and OE (calculated using BEV ALS DTM
+  data (spatial resolution 1 m, accuracy generally ± 0.5 m, may vary in
+  high altitude). The OE activation zones were computed by [Tobi
+  OE7TOK](https://reflector.sota.org.uk/t/activation-zones-for-oe-on-sotlas/34629).
+- [Caltopo](https://caltopo.com/) can also be used to compute activation
+  zones using the DEM shading tool on a desktop computer or smartphone
+  (see [Tim N7KOM’s](https://www.etsy.com/shop/N7KOMPortableRadio)
+  [tutorial](https://www.youtube.com/watch?v=UixA1Fc4D1c) on how to do
+  this). CalTopo’s elevation data is up to 1 meter resolution in many
+  areas, which is based on LIDAR scans from the USGS’s 3DEP program.
+  This is currently the highest resolution freely available tool for
+  on-the-fly computation of activation zone areas.
+
+Currently this project only does summits in the W7W-KG area.
 
 ### Acquire the data
 
@@ -162,10 +185,11 @@ probably 7-10 m per pixel at the zoom level we are using here. More
 details on resolution and zoom level is still available in the
 [documentation on ground
 resolution](https://github.com/tilezen/joerd/blob/master/docs/data-sources.md#what-is-the-ground-resolution).
+These tiles can be browsed at <https://eos.com/landviewer/>
 
 This chunk of code takes several minutes to run and downloads raster
 tiles on each iteration of the loop. If you are viewing this in the
-[Binder](https://mybinder.org/badge_logo.svg)\](<https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio>)
+[Binder](https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio)
 instance, you can skip this step and jump down to where me [inspect the
 data](#inspect)
 
@@ -329,13 +353,17 @@ geojsonio::geojson_write(output$poly_with_summit,
 }
 ```
 
-Take a look at all of the summits:
+After running the code block above we now have one GeoJSON file per
+summit with a polygon defining its activation zone in our `/output`
+directory.
+
+Here are all the summits in W7W/KG (red points) and their activation
+zones as computed above (grey polygons):
 
 ``` r
-
-this_summit_point_df <- bind_rows(loop_output$this_summit_point)
-this_summit_point_az_df <- bind_rows(loop_output$this_summit_point_az)
-poly_with_summit_df <- bind_rows(loop_output$poly_with_summit) %>% select(geometry)
+this_summit_point_df <- bind_rows(loop_output$this_summit_point) # 160 
+this_summit_point_az_df <- bind_rows(loop_output$this_summit_point_az) # 160
+poly_with_summit_df <- bind_rows(loop_output$poly_with_summit) %>% select(geometry) # 159
 
 # take a look at the summits and AZs
   ggplot() +
@@ -351,8 +379,6 @@ poly_with_summit_df <- bind_rows(loop_output$poly_with_summit) %>% select(geomet
                     bg.r = 0.1,
                     size = 1.5,
                     segment.colour= "grey") +
-    scale_fill_viridis_c(na.value = "white",
-                         name = "Elevation (m)") +
     annotation_scale(location = "bl", 
                      width_hint = 0.5,
                      pad_y = unit(0.1, "cm"),
@@ -364,7 +390,7 @@ poly_with_summit_df <- bind_rows(loop_output$poly_with_summit) %>% select(geomet
 
 ![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
-Take a look at one of the summits and the activation zone we have
+Here is a close-up look at one summit and the activation zone we have
 computed for it:
 
 ``` r
@@ -394,30 +420,22 @@ computed for it:
 
 ![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
-### Take a look at the differences between summit elevation values in the SOTA data and in the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/).
-
-The differences in elevation of summits mean that some activation zones
-calculated here might not be accurate. The upper panel shows the full
-range of summits where the SOTA elevation differs from the Terrain
-Tiles, and the lower panel is a zoomed in view at -25, 25. The labelled
-summits, especially those in the top panel that deviate more than 20m,
-are ones where the activation zones computed here may not be accurate.
-
-``` r
+<!-- 
+### Differences between summit elevation values in the SOTA data and in the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/).
+&#10;In developing this analysis I found that some summits have elevation values recorded in the SOTA data that are different from the elevation data in the Terrain Tiles. The differences in elevation of summits mean that some activation zones calculated here might not be accurate. In the plot below, the upper panel shows the full range of summits where the SOTA elevation differs from the Terrain Tiles, and the lower panel is a zoomed in view at -25m, 25m. The labelled summits, especially those in the top panel that deviate more than 20m, are ones where the activation zones computed here may be slightly inaccurate.
+&#10;
+```r
 library(ggforce)
-
-this_summit_point_az_df_outliers1 <- 
+&#10;this_summit_point_az_df_outliers1 <- 
 this_summit_point_az_df %>% 
   mutate(diff_elev = bbx_ras_max - elev_m) %>% 
   filter(  diff_elev >= 20 | diff_elev <= -20 )
-
-this_summit_point_az_df_outliers2 <- 
+&#10;this_summit_point_az_df_outliers2 <- 
 this_summit_point_az_df %>% 
   mutate(diff_elev = bbx_ras_max - elev_m) %>% 
   filter(  diff_elev >= 5 | diff_elev <= -5 ) %>% 
   filter(between(  diff_elev, -25, 25))
-
-p1 <- 
+&#10;p1 <- 
 this_summit_point_az_df %>% 
   mutate(diff_elev = bbx_ras_max - elev_m) %>% 
 ggplot() +
@@ -438,8 +456,7 @@ geom_text_repel(data = this_summit_point_az_df_outliers1,
   guides(text = "none",
          size = "none") +
   xlab("")
-
-p2 <- 
+&#10;p2 <- 
   this_summit_point_az_df %>% 
   mutate(diff_elev = bbx_ras_max - elev_m) %>% 
    filter(between(diff_elev, -25, 25)) %>% 
@@ -461,12 +478,12 @@ geom_text_repel(data = this_summit_point_az_df_outliers2,
   guides(text = "none",
          size = "none") +
   xlab("Difference in elevation between the SOTA value and the AWS Terrain tiles (m)")
-
-library(cowplot)
+&#10;library(cowplot)
 plot_grid(p1, p2, nrow = 2)
 ```
+&#10;![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
-![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+–\>
 
 ### Inspect all the summits and activation zones in our set
 
