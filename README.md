@@ -9,6 +9,8 @@
 
 <!-- badges: end -->
 
+### Background
+
 The goal of this repository is to generate polygons that indicate the
 [activation zones](https://www.sota.org.uk/Blog/2017/07/08/In-The-Zone)
 for [SOTA](https://www.sota.org.uk/) summits. Here is how the [SOTA
@@ -29,6 +31,8 @@ zone:
 > valid and will score no points.
 
 For now this project only does summits in the W7W-KG area.
+
+### Acquire the data
 
 Let’s load the libraries we’ll need
 
@@ -137,6 +141,8 @@ for(i in 1:nrow(gjsf_elev_buf_sq_df)){
 }
 ```
 
+### Iterate over each summit to compute the activation zone polygon
+
 Here is a loop that takes each summit and its bounding box and:
 
 - downloads some raster tiles to cover the bounding box area
@@ -156,6 +162,12 @@ probably 7-10 m per pixel at the zoom level we are using here. More
 details on resolution and zoom level is still available in the
 [documentation on ground
 resolution](https://github.com/tilezen/joerd/blob/master/docs/data-sources.md#what-is-the-ground-resolution).
+
+This chunk of code takes several minutes to run and downloads raster
+tiles on each iteration of the loop. If you are viewing this in the
+[Binder](https://mybinder.org/badge_logo.svg)\](<https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio>)
+instance, you can skip this step and jump down to where me [inspect the
+data](#inspect)
 
 ``` r
 # loop over each bounding box, get the DSM raster 
@@ -322,7 +334,7 @@ Take a look at all of the summits:
 ``` r
 
 this_summit_point_df <- bind_rows(loop_output$this_summit_point)
-this_summit_point_az_df <- bind_rows(loop_output$this_summit_point_az_df)
+this_summit_point_az_df <- bind_rows(loop_output$this_summit_point_az)
 poly_with_summit_df <- bind_rows(loop_output$poly_with_summit) %>% select(geometry)
 
 # take a look at the summits and AZs
@@ -382,15 +394,87 @@ computed for it:
 
 ![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
-Take a look at the differences between summit elevation values in the
-SOTA data and in the [Amazon Web Services (AWS) Terrain
-Tiles](https://registry.opendata.aws/terrain-tiles/). The differences in
-elevation of summits mean that some activation zones calculated here
-might not be accurate.
+### Take a look at the differences between summit elevation values in the SOTA data and in the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/).
 
-Inspect all the summits and activation zones in our set. Import the
-GeoJSON files and display the summit points and activation zones
-polygons on an interactive map.
+The differences in elevation of summits mean that some activation zones
+calculated here might not be accurate. The upper panel shows the full
+range of summits where the SOTA elevation differs from the Terrain
+Tiles, and the lower panel is a zoomed in view at -25, 25. The labelled
+summits, especially those in the top panel that deviate more than 20m,
+are ones where the activation zones computed here may not be accurate.
+
+``` r
+library(ggforce)
+
+this_summit_point_az_df_outliers1 <- 
+this_summit_point_az_df %>% 
+  mutate(diff_elev = bbx_ras_max - elev_m) %>% 
+  filter(  diff_elev >= 20 | diff_elev <= -20 )
+
+this_summit_point_az_df_outliers2 <- 
+this_summit_point_az_df %>% 
+  mutate(diff_elev = bbx_ras_max - elev_m) %>% 
+  filter(  diff_elev >= 5 | diff_elev <= -5 ) %>% 
+  filter(between(  diff_elev, -25, 25))
+
+p1 <- 
+this_summit_point_az_df %>% 
+  mutate(diff_elev = bbx_ras_max - elev_m) %>% 
+ggplot() +
+  aes(diff_elev) +
+  geom_histogram(bins = 100)  +
+  theme_minimal() +
+geom_text_repel(data = this_summit_point_az_df_outliers1,
+                aes(x = diff_elev,
+                    y = 5,
+                    size = 2,
+                    hjust        = 0.5,
+                    segment.size = 0.2,
+                    label = id),
+                    nudge_y      = 30,
+                    direction    = "x",
+                    max.overlaps = 4,
+                    angle = 90) +
+  guides(text = "none",
+         size = "none") +
+  xlab("")
+
+p2 <- 
+  this_summit_point_az_df %>% 
+  mutate(diff_elev = bbx_ras_max - elev_m) %>% 
+   filter(between(diff_elev, -25, 25)) %>% 
+ggplot() +
+  aes(diff_elev) +
+  geom_histogram(bins = 100)  +
+  theme_minimal()  +
+geom_text_repel(data = this_summit_point_az_df_outliers2,
+                aes(x = diff_elev,
+                    y = 5,
+                    size = 2,
+                    hjust        = 0.5,
+                    segment.size = 0.2,
+                    label = id),
+                    nudge_y      = 30,
+                    direction    = "x",
+                    max.overlaps = 4,
+                    angle = 90) +
+  guides(text = "none",
+         size = "none") +
+  xlab("Difference in elevation between the SOTA value and the AWS Terrain tiles (m)")
+
+library(cowplot)
+plot_grid(p1, p2, nrow = 2)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
+### Inspect all the summits and activation zones in our set
+
+Import the GeoJSON files and display the summit points and activation
+zones polygons on an interactive map. To quickly explore these data
+without downloading anything, and use the interactive map in your web
+browser, [click here to open an instance of RStudio in your browser
+tab](https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio)
 
 ``` r
 library(tidyverse)
@@ -415,15 +499,20 @@ summit_geometry <-
 ```
 
 This code block makes an interactive map of the summits and activation
-zones. On GitHub this shows as a static image. To run the code and use
-the interactive map in your web brower, [click here to open an instance
-of RStudio in your browser
-tab](https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio)
+zones. On GitHub this shows as a static image.
 
 ``` r
 library(leaflet)
-library(webshot2)
-library(htmlwidgets)
+
+gjsf <- st_read("input/W7W_KG.geojson")
+#> Reading layer `W7W_KG' from data source 
+#>   `/Users/bmarwick/Downloads/computing-sota-az-boundaries/input/W7W_KG.geojson' 
+#>   using driver `GeoJSON'
+#> Simple feature collection with 160 features and 4 fields
+#> Geometry type: POINT
+#> Dimension:     XY
+#> Bounding box:  xmin: -122.4141 ymin: 47.1287 xmax: -121.0704 ymax: 47.7793
+#> Geodetic CRS:  WGS 84
 
 l <- 
 leaflet() %>% 
@@ -431,7 +520,7 @@ leaflet() %>%
   addPolygons(data = summit_geometry,
               color = "red", 
               weight = 1) %>% 
-  addCircleMarkers(data = gjsf_elev %>% 
+  addCircleMarkers(data = gjsf %>% 
                      mutate(id = str_replace_all(id, "/|-", "_")) %>% 
                      filter(id %in% summit_geometry$summit ),
                    radius = 1,

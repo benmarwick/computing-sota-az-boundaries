@@ -19,17 +19,22 @@ knitr::opts_chunk$set(
 # Computing Activation Zone Boundaries for [SOTA](https://www.sota.org.uk/) Summits
 
 <!-- badges: start -->
+
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio)
 
 <!-- badges: end -->
 
-The goal of this repository is to generate polygons that indicate the [activation zones](https://www.sota.org.uk/Blog/2017/07/08/In-The-Zone) for [SOTA](https://www.sota.org.uk/) summits. Here is how the [SOTA FAQ](https://www.sota.org.uk/Joining-In/FAQs) defines the activation zone: 
+### Background
+
+The goal of this repository is to generate polygons that indicate the [activation zones](https://www.sota.org.uk/Blog/2017/07/08/In-The-Zone) for [SOTA](https://www.sota.org.uk/) summits. Here is how the [SOTA FAQ](https://www.sota.org.uk/Joining-In/FAQs) defines the activation zone:
 
 > Q. What is the Activation Zone?
 
 > A. Often it is inconvenient to operate from the actual highest point of a summit, there may be structures there, or on a frequently visited summit there may be too many people about. The SOTA rules permit the operating position to be away from the summit but not more than 25 vertical metres below the summit. If you draw a contour line on a map 25 metres below the summit, the area within this contour is the Activation Zone. See this [MT blog posting](https://www.sota.org.uk/Blog/2017/07/08/In-The-Zone) for more information. If you operate from outside the AZ, the activation is not valid and will score no points.
 
 For now this project only does summits in the W7W-KG area.
+
+### Acquire the data
 
 Let's load the libraries we'll need
 
@@ -44,7 +49,7 @@ library(ggrepel)
 library(ggspatial)
 ```
 
-Import a GeoJSON file containing the locations and elevations of SOTA summits. I got this file from https://sotl.as/summits/W7W/KG. 
+Import a GeoJSON file containing the locations and elevations of SOTA summits. I got this file from <https://sotl.as/summits/W7W/KG>.
 
 ```{r}
 # get all summits via the GeoJSON download
@@ -63,7 +68,7 @@ gjsf %>%
          y = st_coordinates(geometry)[,"Y"])
 ```
 
-Create a square buffer area of 1000m by 1000m around each summit, with the summit in the center. This is the area that we will download a raster of elevation data to compute the activation zone. This area is good enough for most summits, but for a few summits with very large activation zones it's too small, we'll deal with that later. 
+Create a square buffer area of 1000m by 1000m around each summit, with the summit in the center. This is the area that we will download a raster of elevation data to compute the activation zone. This area is good enough for most summits, but for a few summits with very large activation zones it's too small, we'll deal with that later.
 
 ```{r}
 # make a single square buffer for each point
@@ -120,16 +125,20 @@ for(i in 1:nrow(gjsf_elev_buf_sq_df)){
 }
 ```
 
+### Iterate over each summit to compute the activation zone polygon
+
 Here is a loop that takes each summit and its bounding box and:
 
-- downloads some raster tiles to cover the bounding box area
-- then selects all the pixels in the raster that have an elevation value between the summit elevation and 25m below that elevation 
-- then draw a polygon around those pixels
-- then drop polygons that don't contain the summit point 
-- then check if the activation zone polygon has the same dimension as the buffer zone, if it does, make the buffer zone much bigger and repeat the steps above to properly handle summits with unusually large activation zones
-- then write the polygon of the activation zone to a GeoJSON file
+-   downloads some raster tiles to cover the bounding box area
+-   then selects all the pixels in the raster that have an elevation value between the summit elevation and 25m below that elevation
+-   then draw a polygon around those pixels
+-   then drop polygons that don't contain the summit point
+-   then check if the activation zone polygon has the same dimension as the buffer zone, if it does, make the buffer zone much bigger and repeat the steps above to properly handle summits with unusually large activation zones
+-   then write the polygon of the activation zone to a GeoJSON file
 
 The raster tiles come from the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/). The resolution is probably 7-10 m per pixel at the zoom level we are using here. More details on resolution and zoom level is still available in the [documentation on ground resolution](https://github.com/tilezen/joerd/blob/master/docs/data-sources.md#what-is-the-ground-resolution).
+
+This chunk of code takes several minutes to run and downloads raster tiles on each iteration of the loop. If you are viewing this in the [Binder](https://mybinder.org/badge_logo.svg)](<https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio>) instance, you can skip this step and jump down to where me [inspect the data](#inspect)
 
 ```{r, results='hide', cache=TRUE}
 # loop over each bounding box, get the DSM raster 
@@ -291,7 +300,6 @@ geojsonio::geojson_write(output$poly_with_summit,
 }
 ```
 
-
 Take a look at all of the summits:
 
 ```{r}
@@ -352,23 +360,76 @@ Take a look at one of the summits and the activation zone we have computed for i
     theme_minimal(base_size = 8)
 ```
 
-Take a look at the differences between summit elevation values in the SOTA data and in the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/). The differences in elevation of summits mean that some activation zones calculated here might not be accurate. 
+### Take a look at the differences between summit elevation values in the SOTA data and in the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/).
+
+The differences in elevation of summits mean that some activation zones calculated here might not be accurate. The upper panel shows the full range of summits where the SOTA elevation differs from the Terrain Tiles, and the lower panel is a zoomed in view at -25, 25. The labelled summits, especially those in the top panel that deviate more than 20m, are ones where the activation zones computed here may not be accurate.
 
 ```{r}
+library(ggforce)
 
+this_summit_point_az_df_outliers1 <- 
+this_summit_point_az_df %>% 
+  mutate(diff_elev = bbx_ras_max - elev_m) %>% 
+  filter(  diff_elev >= 20 | diff_elev <= -20 )
 
+this_summit_point_az_df_outliers2 <- 
+this_summit_point_az_df %>% 
+  mutate(diff_elev = bbx_ras_max - elev_m) %>% 
+  filter(  diff_elev >= 5 | diff_elev <= -5 ) %>% 
+  filter(between(  diff_elev, -25, 25))
 
+p1 <- 
 this_summit_point_az_df %>% 
   mutate(diff_elev = bbx_ras_max - elev_m) %>% 
 ggplot() +
   aes(diff_elev) +
-  geom_histogram() 
+  geom_histogram(bins = 100)  +
+  theme_minimal() +
+geom_text_repel(data = this_summit_point_az_df_outliers1,
+                aes(x = diff_elev,
+                    y = 5,
+                    size = 2,
+                    hjust        = 0.5,
+                    segment.size = 0.2,
+                    label = id),
+                    nudge_y      = 30,
+                    direction    = "x",
+                    max.overlaps = 4,
+                    angle = 90) +
+  guides(text = "none",
+         size = "none") +
+  xlab("")
 
+p2 <- 
+  this_summit_point_az_df %>% 
+  mutate(diff_elev = bbx_ras_max - elev_m) %>% 
+   filter(between(diff_elev, -25, 25)) %>% 
+ggplot() +
+  aes(diff_elev) +
+  geom_histogram(bins = 100)  +
+  theme_minimal()  +
+geom_text_repel(data = this_summit_point_az_df_outliers2,
+                aes(x = diff_elev,
+                    y = 5,
+                    size = 2,
+                    hjust        = 0.5,
+                    segment.size = 0.2,
+                    label = id),
+                    nudge_y      = 30,
+                    direction    = "x",
+                    max.overlaps = 4,
+                    angle = 90) +
+  guides(text = "none",
+         size = "none") +
+  xlab("Difference in elevation between the SOTA value and the AWS Terrain tiles (m)")
+
+library(cowplot)
+plot_grid(p1, p2, nrow = 2)
 ```
 
+### Inspect all the summits and activation zones in our set  {#inspect}
 
-
-Inspect all the summits and activation zones in our set. Import the GeoJSON files and display the summit points and activation zones polygons on an interactive map. 
+Import the GeoJSON files and display the summit points and activation zones polygons on an interactive map. To quickly explore these data without downloading anything, and use the interactive map in your web browser, [click here to open an instance of RStudio in your browser tab](https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio)
 
 ```{r results='hide'}
 library(tidyverse)
@@ -392,12 +453,12 @@ summit_geometry <-
   select(summit, geometry)
 ```
 
-This code block makes an interactive map of the summits and activation zones. On GitHub this shows as a static image. To run the code and use the interactive map in your web brower, [click here to open an instance of RStudio in your browser tab](https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio)
+This code block makes an interactive map of the summits and activation zones. On GitHub this shows as a static image.
 
 ```{r}
 library(leaflet)
-library(webshot2)
-library(htmlwidgets)
+
+gjsf <- st_read("input/W7W_KG.geojson")
 
 l <- 
 leaflet() %>% 
@@ -405,7 +466,7 @@ leaflet() %>%
   addPolygons(data = summit_geometry,
               color = "red", 
               weight = 1) %>% 
-  addCircleMarkers(data = gjsf_elev %>% 
+  addCircleMarkers(data = gjsf %>% 
                      mutate(id = str_replace_all(id, "/|-", "_")) %>% 
                      filter(id %in% summit_geometry$summit ),
                    radius = 1,
@@ -424,11 +485,9 @@ l
 
 ```
 
-
 ### Licenses
 
-**Text and figures :**
-[CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
+**Text and figures :** [CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 
 **Code :** see [LICENSE.md](LICENSE.md)
 
@@ -436,10 +495,4 @@ l
 
 ### Contributions
 
-We welcome contributions from everyone. Before you get started, please
-see our [contributor guidelines](CONTRIBUTING.md). Please note that this
-project is released with a [Contributor Code of Conduct](CONDUCT.md). By
-participating in this project you agree to abide by its terms.
-
-
-
+We welcome contributions from everyone. Before you get started, please see our [contributor guidelines](CONTRIBUTING.md). Please note that this project is released with a [Contributor Code of Conduct](CONDUCT.md). By participating in this project you agree to abide by its terms.
