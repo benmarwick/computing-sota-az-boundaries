@@ -34,8 +34,8 @@ The goal of this repository is to generate polygons that indicate the [activatio
 
 Prior work on computing activation zones includes: 
 
-- the web app https://activation.zone/ by [Ara N6ARA](https://n6ara.com/) which uses 30m elevation data provided by the [elevation Python package](https://pypi.org/project/elevation/). On [sotl.as](https://sotl.as/) 
-- activation zones are visible in the map view for HB/HB0 (calculated using [swissALTI3D](https://www.swisstopo.admin.ch/de/hoehenmodell-swissalti3d) data from swisstopo (spatial resolution 0.5 m, accuracy ± 0.3 – 3 m (1σ) depending on the region) and OE (calculated using BEV ALS DTM data (spatial resolution 1 m, accuracy generally ± 0.5 m, may vary in high altitude). The OE activation zones were computed by [Tobi OE7TOK](https://reflector.sota.org.uk/t/activation-zones-for-oe-on-sotlas/34629). 
+- the web app https://activation.zone/ by [Ara N6ARA](https://n6ara.com/) which uses 30m elevation data provided by the [elevation Python package](https://pypi.org/project/elevation/). 
+- On [sotl.as](https://sotl.as/) activation zones are visible in the map view for HB/HB0 (calculated using [swissALTI3D](https://www.swisstopo.admin.ch/de/hoehenmodell-swissalti3d) data from swisstopo (spatial resolution 0.5 m, accuracy ± 0.3 – 3 m (1σ) depending on the region) and OE (calculated using BEV ALS DTM data (spatial resolution 1 m, accuracy generally ± 0.5 m, may vary in high altitude). The OE activation zones were computed by [Tobi OE7TOK](https://reflector.sota.org.uk/t/activation-zones-for-oe-on-sotlas/34629). 
 - [Caltopo](https://caltopo.com/) can also be used to compute activation zones using the DEM shading tool on a desktop computer or smartphone (see [Tim N7KOM's](https://www.etsy.com/shop/N7KOMPortableRadio) [tutorial](https://www.youtube.com/watch?v=UixA1Fc4D1c) on how to do this). CalTopo's elevation data is up to 1 meter resolution in many areas, which is based on LIDAR scans from the USGS's 3DEP program. This is currently the highest resolution freely available tool for on-the-fly computation of activation zone areas.  
 
 Currently this project only does summits in the W7W-KG area.
@@ -220,9 +220,12 @@ az_poly <- st_as_sf(as.polygons(rast(rast) > -Inf))
 df_union_cast <- st_cast(az_poly, "POLYGON")
   
 poly_with_summit <- 
-    apply(st_intersects(df_union_cast, 
+    apply(st_is_within_distance(df_union_cast, 
                         this_summit_point, 
-                        sparse = FALSE), 2, 
+                        sparse = FALSE,
+                        dist = 10), 2, # within or 10 m outside of, because some 
+                                       # summits are just outside of their
+                                       # nearest polygon
           function(col) { 
             df_union_cast[which(col), ]
           })[[1]]
@@ -313,7 +316,7 @@ Here are all the summits in W7W/KG (red points) and their activation zones as co
 ```{r}
 this_summit_point_df <- bind_rows(loop_output$this_summit_point) # 160 
 this_summit_point_az_df <- bind_rows(loop_output$this_summit_point_az) # 160
-poly_with_summit_df <- bind_rows(loop_output$poly_with_summit) %>% select(geometry) # 159
+poly_with_summit_df <- bind_rows(loop_output$poly_with_summit) %>% select(geometry) # 160
 
 # take a look at the summits and AZs
   ggplot() +
@@ -342,14 +345,18 @@ Here is a close-up look at one summit and the activation zone we have computed f
 
 ```{r}
 # take a look at the summit and AZ
-  ggplot() +
-    geom_spatraster(data = rast(loop_output$bbx_ras[[1]])) +
-    geom_sf(data = loop_output$poly_with_summit[[1]],
+which(str_detect(this_summit_point_df$name, "West Tiger"))
+
+i <- 78
+
+ggplot() +
+    geom_spatraster(data = rast(loop_output$bbx_ras[[i]])) +
+    geom_sf(data = poly_with_summit_df[i,],
             colour ="red",
             fill = NA) +
-    geom_point(data = loop_output$this_summit_point[[1]],
+    geom_point(data = this_summit_point_az_df[i,],
                aes(x, y)) + 
-    geom_text_repel(data = loop_output$this_summit_point[[1]],
+    geom_text_repel(data = this_summit_point_az_df[i,],
                     aes( x, y,
                          label = name),
                     bg.color = "white",
@@ -364,6 +371,10 @@ Here is a close-up look at one summit and the activation zone we have computed f
     coord_sf() +
     theme_minimal(base_size = 8)
 ```
+
+Here's a comparison with two other methods:
+
+
 
 <!-- 
 
