@@ -144,7 +144,7 @@ Here is a loop that takes each summit and its bounding box and:
 
 The raster tiles come from the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/). The resolution is probably 5-7 m per pixel at the zoom level we are using here. More details on resolution and zoom level is still available in the [documentation on ground resolution](https://github.com/tilezen/joerd/blob/master/docs/data-sources.md#what-is-the-ground-resolution). These tiles can be browsed at https://eos.com/landviewer/
 
-This chunk of code takes several minutes to run and downloads raster tiles on each iteration of the loop. If you are viewing this in the [Binder](<https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio>) instance, you can skip this step and jump down to where me [inspect the data](#inspect)
+This chunk of code takes several minutes to run and downloads raster tiles on each iteration of the loop. If you are viewing this in the [Binder](<https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio>) instance, you can skip this step and jump down to where we [inspect the data](#inspect-all-the-summits-and-activation-zones-in-our-set)
 
 ```{r, results='hide', cache=TRUE}
 # loop over each bounding box, get the DSM raster 
@@ -473,7 +473,7 @@ plot_grid(p1, p2, nrow = 2)
 
 -->
 
-### Inspect all the summits and activation zones in our set  {#inspect}
+### Inspect all the summits and activation zones in our set
 
 Import the GeoJSON files and display the summit points and activation zones polygons on an interactive map. To quickly explore these data without downloading anything, and use the interactive map in your web browser, [click here to open an instance of RStudio in your browser tab](https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio)
 
@@ -525,11 +525,7 @@ leaflet() %>%
   addScaleBar()
 
 
-l
-# saveWidget(l, "map.html", selfcontained=TRUE)
-# webshot("map.html", file="map.png", cliprect="viewport")
-# knitr::include_graphics("map.png")
-
+l # open the interactive map for panning and zooming over all the summits
 ```
 
 ### Licenses

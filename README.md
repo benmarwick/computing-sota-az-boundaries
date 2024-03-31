@@ -189,8 +189,8 @@ These tiles can be browsed at <https://eos.com/landviewer/>
 This chunk of code takes several minutes to run and downloads raster
 tiles on each iteration of the loop. If you are viewing this in the
 [Binder](https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio)
-instance, you can skip this step and jump down to where me [inspect the
-data](#inspect)
+instance, you can skip this step and jump down to where we [inspect the
+data](#inspect-all-the-summits-and-activation-zones-in-our-set)
 
 ``` r
 # loop over each bounding box, get the DSM raster 
@@ -574,16 +574,10 @@ leaflet() %>%
   addScaleBar()
 
 
-l
+l # open the interactive map for panning and zooming over all the summits
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
-
-``` r
-# saveWidget(l, "map.html", selfcontained=TRUE)
-# webshot("map.html", file="map.png", cliprect="viewport")
-# knitr::include_graphics("map.png")
-```
 
 ### Licenses
 
