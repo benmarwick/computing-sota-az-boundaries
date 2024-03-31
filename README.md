@@ -35,9 +35,8 @@ Prior work on computing activation zones includes:
 - the web app <https://activation.zone/> by [Ara
   N6ARA](https://n6ara.com/) which uses 30m elevation data provided by
   the [elevation Python package](https://pypi.org/project/elevation/).
-  On [sotl.as](https://sotl.as/)
-- activation zones are visible in the map view for HB/HB0 (calculated
-  using
+- On [sotl.as](https://sotl.as/) activation zones are visible in the map
+  view for HB/HB0 (calculated using
   [swissALTI3D](https://www.swisstopo.admin.ch/de/hoehenmodell-swissalti3d)
   data from swisstopo (spatial resolution 0.5 m, accuracy ± 0.3 – 3 m
   (1σ) depending on the region) and OE (calculated using BEV ALS DTM
@@ -245,13 +244,17 @@ bbx_ras_max <- maxValue(bbx_ras)
 # let's handle it. e.g. elevation for Boise Ridge W7W/KG-114 
 # might be wrong: max in raster is 941m, but SOTA data is 969m
 
+az_elev <- 20 # AZ is area -25m elevation from summit, 
+              # we take a conservative approach here to 
+              # compensate for the raster resolution, gps error, etc.
+
 # define elevation contour that bounds the AZ
 this_summit_point_az <- 
     this_summit_point %>% 
     mutate(bbx_ras_max = bbx_ras_max, # this is helpful for debugging
            az_lower_contour = ifelse(elev_m <= bbx_ras_max,
-                                     elev_m - 25,         # AZ is area -25m elevation from summit
-                                     bbx_ras_max - 25 ))   # SOTA summit data does not always match raster data
+                                     elev_m - az_elev,         
+                                     bbx_ras_max - az_elev ))   # SOTA summit data does not always match raster data
 
 # subset the summit point that is in this bbox
 rast <- bbx_ras
@@ -267,9 +270,12 @@ az_poly <- st_as_sf(as.polygons(rast(rast) > -Inf))
 df_union_cast <- st_cast(az_poly, "POLYGON")
   
 poly_with_summit <- 
-    apply(st_intersects(df_union_cast, 
+    apply(st_is_within_distance(df_union_cast, 
                         this_summit_point, 
-                        sparse = FALSE), 2, 
+                        sparse = FALSE,
+                        dist = 10), 2, # within or 10 m outside of, because some 
+                                       # summits are just outside of their
+                                       # nearest polygon
           function(col) { 
             df_union_cast[which(col), ]
           })[[1]]
@@ -363,7 +369,7 @@ zones as computed above (grey polygons):
 ``` r
 this_summit_point_df <- bind_rows(loop_output$this_summit_point) # 160 
 this_summit_point_az_df <- bind_rows(loop_output$this_summit_point_az) # 160
-poly_with_summit_df <- bind_rows(loop_output$poly_with_summit) %>% select(geometry) # 159
+poly_with_summit_df <- bind_rows(loop_output$poly_with_summit) %>% select(geometry) # 160
 
 # take a look at the summits and AZs
   ggplot() +
@@ -394,15 +400,17 @@ Here is a close-up look at one summit and the activation zone we have
 computed for it:
 
 ``` r
-# take a look at the summit and AZ
-  ggplot() +
-    geom_spatraster(data = rast(loop_output$bbx_ras[[1]])) +
-    geom_sf(data = loop_output$poly_with_summit[[1]],
+# take a look at a summit and AZ
+i <- which(str_detect(this_summit_point_df$name, "Tiger"))[2]
+
+ggplot() +
+    geom_spatraster(data = rast(loop_output$bbx_ras[[i]])) +
+    geom_sf(data = poly_with_summit_df[i,],
             colour ="red",
             fill = NA) +
-    geom_point(data = loop_output$this_summit_point[[1]],
+    geom_point(data = this_summit_point_az_df[i,],
                aes(x, y)) + 
-    geom_text_repel(data = loop_output$this_summit_point[[1]],
+    geom_text_repel(data = this_summit_point_az_df[i,],
                     aes( x, y,
                          label = name),
                     bg.color = "white",
@@ -419,6 +427,19 @@ computed for it:
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+
+Here’s a comparison with two other methods. The green polygon is from
+<https://activation.zone/?summitRef=W7W/KG-116> and the yellow polygon
+is the activation zone computed using the code above. The red-blue
+polygon is the activation zone determined by the Caltopo DEM shading
+tool. This map with the three activation zones is also online at
+<https://caltopo.com/m/GPM5V>
+
+``` r
+knitr::include_graphics("input/az-comparison-figure.jpeg")
+```
+
+<img src="input/az-comparison-figure.jpeg" width="100%" />
 
 <!-- 
 &#10;### Differences between summit elevation values in the SOTA data and in the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/).
@@ -481,7 +502,7 @@ geom_text_repel(data = this_summit_point_az_df_outliers2,
 &#10;library(cowplot)
 plot_grid(p1, p2, nrow = 2)
 ```
-&#10;![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+&#10;![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
 –\>
 
@@ -556,7 +577,7 @@ leaflet() %>%
 l
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 ``` r
 # saveWidget(l, "map.html", selfcontained=TRUE)

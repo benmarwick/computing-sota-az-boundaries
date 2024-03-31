@@ -198,13 +198,17 @@ bbx_ras_max <- maxValue(bbx_ras)
 # let's handle it. e.g. elevation for Boise Ridge W7W/KG-114 
 # might be wrong: max in raster is 941m, but SOTA data is 969m
 
+az_elev <- 20 # AZ is area -25m elevation from summit, 
+              # we take a conservative approach here to 
+              # compensate for the raster resolution, gps error, etc.
+
 # define elevation contour that bounds the AZ
 this_summit_point_az <- 
     this_summit_point %>% 
     mutate(bbx_ras_max = bbx_ras_max, # this is helpful for debugging
            az_lower_contour = ifelse(elev_m <= bbx_ras_max,
-                                     elev_m - 25,         # AZ is area -25m elevation from summit
-                                     bbx_ras_max - 25 ))   # SOTA summit data does not always match raster data
+                                     elev_m - az_elev,         
+                                     bbx_ras_max - az_elev ))   # SOTA summit data does not always match raster data
 
 # subset the summit point that is in this bbox
 rast <- bbx_ras
@@ -344,10 +348,8 @@ poly_with_summit_df <- bind_rows(loop_output$poly_with_summit) %>% select(geomet
 Here is a close-up look at one summit and the activation zone we have computed for it:
 
 ```{r}
-# take a look at the summit and AZ
-which(str_detect(this_summit_point_df$name, "West Tiger"))
-
-i <- 78
+# take a look at a summit and AZ
+i <- which(str_detect(this_summit_point_df$name, "Tiger"))[2]
 
 ggplot() +
     geom_spatraster(data = rast(loop_output$bbx_ras[[i]])) +
@@ -372,7 +374,31 @@ ggplot() +
     theme_minimal(base_size = 8)
 ```
 
-Here's a comparison with two other methods:
+
+```{r echo=FALSE, eval=FALSE}
+
+# make a sf polygon from the WKT output from https://activation.zone/?summitRef=W7W/KG-116
+# so we can upload it to caltopo as a layer
+
+d <- data.frame(a = 1)
+d$geom <- "POLYGON((-121.97143333333332 47.504988888888874,-121.97143333333332 47.50471111111111,-121.9717111111111 47.50471111111111,-121.97198888888889 47.50443333333334,-121.97226666666667 47.50443333333334,-121.97254444444444 47.50443333333334,-121.97282222222222 47.50415555555554,-121.9731 47.50415555555554,-121.97337777777778 47.503877777777774,-121.97365555555557 47.503600000000006,-121.97393333333335 47.503600000000006,-121.97421111111113 47.50332222222221,-121.97448888888889 47.50332222222221,-121.97476666666667 47.50332222222221,-121.97504444444445 47.50304444444444,-121.9753222222222 47.50332222222221,-121.97559999999999 47.50332222222221,-121.97587777777777 47.50332222222221,-121.97615555555555 47.503600000000006,-121.97643333333333 47.503600000000006,-121.97671111111111 47.503600000000006,-121.97698888888888 47.503600000000006,-121.97726666666667 47.503600000000006,-121.97754444444445 47.503877777777774,-121.97726666666667 47.503877777777774,-121.97698888888888 47.50415555555554,-121.97671111111111 47.50415555555554,-121.97643333333333 47.50443333333334,-121.97615555555555 47.50443333333334,-121.97587777777777 47.50443333333334,-121.97559999999999 47.50415555555554,-121.9753222222222 47.50415555555554,-121.97504444444445 47.50443333333334,-121.97476666666667 47.50443333333334,-121.97448888888889 47.50443333333334,-121.97421111111113 47.50443333333334,-121.97393333333335 47.50443333333334,-121.97365555555557 47.50443333333334,-121.97337777777778 47.50471111111111,-121.9731 47.50471111111111,-121.97282222222222 47.50471111111111,-121.97254444444444 47.504988888888874,-121.97226666666667 47.504988888888874,-121.97198888888889 47.504988888888874,-121.9717111111111 47.504988888888874,-121.97143333333332 47.504988888888874))"
+
+d_sf <- st_as_sf(d, 
+                 wkt = "geom",
+                 crs = st_crs(poly_with_summit_df))
+
+geojsonio::geojson_write(d_sf, file = "west-tiger-mounain-activation.zone.geojson")
+
+# I uploaded this to caltopo
+
+```
+
+
+Here's a comparison with two other methods. The green polygon is from https://activation.zone/?summitRef=W7W/KG-116 and the yellow polygon is the activation zone computed using the code above. The red-blue polygon is the activation zone determined by the Caltopo DEM shading tool. This map with the three activation zones is also online at https://caltopo.com/m/GPM5V
+
+```{r out.width="100%"}
+knitr::include_graphics("input/az-comparison-figure.jpeg")
+```
 
 
 
