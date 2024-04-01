@@ -38,7 +38,7 @@ Prior work on computing activation zones includes:
 - On [sotl.as](https://sotl.as/) activation zones are visible in the map view for HB/HB0 (calculated using [swissALTI3D](https://www.swisstopo.admin.ch/de/hoehenmodell-swissalti3d) data from swisstopo (spatial resolution 0.5 m, accuracy ± 0.3 – 3 m (1σ) depending on the region) and OE (calculated using BEV ALS DTM data (spatial resolution 1 m, accuracy generally ± 0.5 m, may vary in high altitude). The OE activation zones were computed by [Tobi OE7TOK](https://reflector.sota.org.uk/t/activation-zones-for-oe-on-sotlas/34629). 
 - [Caltopo](https://caltopo.com/) can also be used to compute activation zones using the DEM shading tool on a desktop computer or smartphone (see [Tim N7KOM's](https://www.etsy.com/shop/N7KOMPortableRadio) [tutorial](https://www.youtube.com/watch?v=UixA1Fc4D1c) on how to do this). CalTopo's elevation data is up to 1 meter resolution in many areas, which is based on LIDAR scans from the USGS's 3DEP program. This is currently the highest resolution freely available tool for on-the-fly computation of activation zone areas.  
 
-Currently this project only does summits in the W7W-KG area.
+The goal of these project is generate activation zone polygons as GeoJSON files that can be integrated into the sotl.as map. This is inspired by the work done for HB/HB0 and OE, where operators can view the activation zone polygon directly in the sotl.as map  Currently this project only does summits in the W7W-KG area. Here I use the R programming language to access the API for [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) to download a small raster file of elevation data for each summit, and compute the activation zone polygon and save it to a GeoJSON file. Higher resolution rasters are available at https://lidarportal.dnr.wa.gov/, but currently there is no API for these. 
 
 ### Acquire the data
 
@@ -142,7 +142,7 @@ Here is a loop that takes each summit and its bounding box and:
 -   then check if the activation zone polygon has the same dimension as the buffer zone, if it does, make the buffer zone much bigger and repeat the steps above to properly handle summits with unusually large activation zones
 -   then write the polygon of the activation zone to a GeoJSON file
 
-The raster tiles come from the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/). The resolution is probably 5-7 m per pixel at the zoom level we are using here. More details on resolution and zoom level is still available in the [documentation on ground resolution](https://github.com/tilezen/joerd/blob/master/docs/data-sources.md#what-is-the-ground-resolution). These tiles can be browsed at https://eos.com/landviewer/
+The raster tiles come from the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/). The resolution is probably around 5-7 m per pixel at the zoom level we are using here. This is currently the maximum available through the [OpenTopography](https://opentopography.org/) API. More details on resolution and zoom level is still available in the [documentation on ground resolution](https://github.com/tilezen/joerd/blob/master/docs/data-sources.md#what-is-the-ground-resolution). These tiles can be browsed at https://eos.com/landviewer/
 
 This chunk of code takes several minutes to run and downloads raster tiles on each iteration of the loop. If you are viewing this in the [Binder](<https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio>) instance, you can skip this step and jump down to where we [inspect the data](#inspect-all-the-summits-and-activation-zones-in-our-set)
 
@@ -182,7 +182,7 @@ bbx_ras =
                            # https://github.com/tilezen/joerd/blob/master/docs/data-sources.md#what-is-the-ground-resolution
                            # around 5 m / pixel at z = 14 ?
                            z = 14, # this is the max possible
-                           prj =  "WGS84")
+                           prj = sf::st_crs(bbx_st_poly))
 
 loop_output$bbx_ras[[i]] <- bbx_ras
 
@@ -208,7 +208,8 @@ this_summit_point_az <-
     mutate(bbx_ras_max = bbx_ras_max, # this is helpful for debugging
            az_lower_contour = ifelse(elev_m <= bbx_ras_max,
                                      elev_m - az_elev,         
-                                     bbx_ras_max - az_elev ))   # SOTA summit data does not always match raster data
+                                     bbx_ras_max - az_elev ),  # SOTA summit data does not always match raster data
+           az_lower_contour_ft = az_lower_contour * 3.2808399)  
 
 # subset the summit point that is in this bbox
 rast <- bbx_ras
