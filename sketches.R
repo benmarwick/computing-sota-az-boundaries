@@ -2,12 +2,13 @@
 # exploring getting elevation data from 
 # https://lidarportal.dnr.wa.gov/
 # KG-141 and KG-142 are unusually large
+# KG-041, KG-042 summit is about 20 m outside of the polygon
 
 library(httr2)
 
 az_elev_m <- 25 # AZ is area -25m elevation from summit
 
-for(i in 139:nrow(gjsf_elev)){
+for(i in 1:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
@@ -116,7 +117,7 @@ lidar_cropped[lidar_cropped < this_summit_point_az$az_lower_contour_ft] <- NA
 #           fill = NA) +
 #   scale_fill_viridis_c(na.value = "white",
 #                        name = "Elevation (ft)") +
-#   annotation_scale(location = "bl", 
+#   annotation_scale(location = "bl",
 #                    width_hint = 0.5,
 #                    pad_y = unit(0.1, "cm"),
 #                    pad_x = unit(0.5, "cm"),
@@ -152,7 +153,7 @@ poly_with_summit <-
   apply(st_is_within_distance(df_union_cast, 
                               this_summit_nad83, 
                               sparse = FALSE,
-                              dist = 10), 2, # within or 10 m outside of, because some 
+                              dist = 25), 2, # within or 10 m outside of, because some 
         # summits are just outside of their
         # nearest polygon
         function(col) { 
