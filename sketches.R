@@ -7,6 +7,7 @@
 # KG-139 has abrupt edges, needs a bigger raster, done
 # KG-143 has abrupt edges, needs a bigger raster, done
 # KG_100 has abrupt edges, needs a bigger raster, done
+# KG_118 has abrupt edges, needs a bigger raster, done
 
 
 library(httr2)
@@ -169,7 +170,12 @@ poly_with_summit <-
 ggplot() +
   geom_sf(data = poly_with_summit) +
   geom_sf(data = this_summit_nad83) +
-  coord_sf()
+  coord_sf() +
+  annotation_scale(location = "bl", 
+                   width_hint = 0.5,
+                   pad_y = unit(0.1, "cm"),
+                   pad_x = unit(0.5, "cm"),
+                   style =  "ticks") 
 
 poly_with_summit <- st_as_sf(st_transform(poly_with_summit, st_crs(this_summit)))
 
