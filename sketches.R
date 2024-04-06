@@ -6,7 +6,7 @@ library(httr2)
 
 az_elev_m <- 25 # AZ is area -25m elevation from summit
 
-for(i in 1:nrow(gjsf_elev)){
+for(i in 140:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
@@ -129,7 +129,7 @@ az_poly <- st_as_sf(as.polygons(lidar_cropped > -Inf))
 #           fill = NA) +
 #   scale_fill_viridis_c(na.value = "white",
 #                        name = "Elevation (ft)") +
-#   annotation_scale(location = "bl", 
+#   annotation_scale(location = "bl",
 #                    width_hint = 0.5,
 #                    pad_y = unit(0.1, "cm"),
 #                    pad_x = unit(0.5, "cm"),

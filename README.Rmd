@@ -87,7 +87,7 @@ bSquare <- function(x, a) {
 }
 
 # get a buffer zone of a certain area
-buffer_side_length <- 1e6 # 100 is a 10x10
+buffer_side_length <- 1e8 # 100 is a 10x10
 gjsf_elev_buf <- 
 bSquare(gjsf_elev, buffer_side_length)
 
@@ -490,7 +490,8 @@ gjson_files <-
 
 az_files <- 
   map(gjson_files,
-      st_read) 
+      st_read,
+      quiet = TRUE) 
 
 names(az_files) <- str_remove_all(basename(gjson_files), 
                                   "output|.geojson")
