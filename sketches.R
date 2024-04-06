@@ -1,12 +1,13 @@
 
 # exploring getting elevation data from 
 # https://lidarportal.dnr.wa.gov/
+# KG-141 and KG-142 are unusually large
 
 library(httr2)
 
 az_elev_m <- 25 # AZ is area -25m elevation from summit
 
-for(i in 140:nrow(gjsf_elev)){
+for(i in 139:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
@@ -43,9 +44,12 @@ print(paste0("Downloading LIDAR data for ", this_summit$id,
 req <- request(url)
 resp <- req %>% req_perform()
 v = resp_body_raw(resp)
+rm(resp)
 writeBin(v, "data.zip")
+rm(v)
 unzip("data.zip", 
       exdir = "from_url_req/")
+unlink("data.zip")
 the_raster_files <- 
   list.files(path = here::here("from_url_req/"),
              pattern = "*.tif",
@@ -59,7 +63,7 @@ if(length(the_raster_files) == 1){
   m <- rast(the_raster_files)
 } else {
   m <- sprc(the_raster_files)
-  m <- merge(m)
+  m <- terra::merge(m, gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
 }
 
 # transform to projection of LIDAR data
@@ -156,10 +160,10 @@ poly_with_summit <-
         })[[1]]
 
 # # now we see the single polygon that is the activation zone
-# ggplot() +
-#   geom_sf(data = poly_with_summit) +
-#   geom_sf(data = this_summit_nad83) +
-#   coord_sf()
+ggplot() +
+  geom_sf(data = poly_with_summit) +
+  geom_sf(data = this_summit_nad83) +
+  coord_sf()
 
 poly_with_summit <- st_as_sf(st_transform(poly_with_summit, st_crs(this_summit)))
 

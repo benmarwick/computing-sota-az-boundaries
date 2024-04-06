@@ -87,7 +87,7 @@ bSquare <- function(x, a) {
 }
 
 # get a buffer zone of a certain area
-buffer_side_length <- 1e8 # 100 is a 10x10
+buffer_side_length <- 1e7 # 100 is a 10x10
 gjsf_elev_buf <- 
 bSquare(gjsf_elev, buffer_side_length)
 
