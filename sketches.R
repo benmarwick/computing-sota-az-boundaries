@@ -3,6 +3,8 @@
 # https://lidarportal.dnr.wa.gov/
 # KG-141 and KG-142 are unusually large
 # KG-041, KG-042 summit is about 20 m outside of the polygon
+# KG-120 is abrupt on the south edge, needs a bigger raster
+# KG-139 has abrupt edges, needs a bigger raster
 
 library(httr2)
 
@@ -128,18 +130,18 @@ lidar_cropped[lidar_cropped < this_summit_point_az$az_lower_contour_ft] <- NA
 az_poly <- st_as_sf(as.polygons(lidar_cropped > -Inf))
 
 # ggplot() +
-#   geom_sf(data = this_summit_nad83) +
-#   geom_sf(data = az_poly,
-#           colour = "red",
-#           fill = NA) +
-#   scale_fill_viridis_c(na.value = "white",
-#                        name = "Elevation (ft)") +
-#   annotation_scale(location = "bl",
-#                    width_hint = 0.5,
-#                    pad_y = unit(0.1, "cm"),
-#                    pad_x = unit(0.5, "cm"),
-#                    style =  "ticks") +
-#   coord_sf()
+# geom_sf(data = this_summit_nad83) +
+# geom_sf(data = az_poly,
+#         colour = "red",
+#         fill = NA) +
+# scale_fill_viridis_c(na.value = "white",
+#                      name = "Elevation (ft)") +
+# annotation_scale(location = "bl",
+#                  width_hint = 0.5,
+#                  pad_y = unit(0.1, "cm"),
+#                  pad_x = unit(0.5, "cm"),
+#                  style =  "ticks") +
+# coord_sf()
 
 # if there are multiple polygons, we only want the one that 
 # contains the summit point when we have multipolys, 

@@ -87,7 +87,7 @@ bSquare <- function(x, a) {
 }
 
 # get a buffer zone of a certain area
-buffer_side_length <- 1e7 # 100 is a 10x10
+buffer_side_length <- 5e6 # 100 is a 10x10
 gjsf_elev_buf <- 
 bSquare(gjsf_elev, buffer_side_length)
 
@@ -508,22 +508,25 @@ library(leaflet)
 
 gjsf <- st_read("input/W7W_KG.geojson")
 
+which_summit <- 
+  which(summit_geometry$summit == "W7W_KG_139")
+
 l <- 
 leaflet() %>% 
   addProviderTiles("OpenStreetMap") %>% 
-  addPolygons(data = summit_geometry,
+  addPolygons(data = summit_geometry[which_summit,],
               color = "red", 
               weight = 1) %>% 
   addCircleMarkers(data = gjsf %>% 
                      mutate(id = str_replace_all(id, "/|-", "_")) %>% 
-                     filter(id %in% summit_geometry$summit ),
+                     filter(id %in% summit_geometry[which_summit,]$summit ),
                    radius = 1,
                    weight = 1,
                    label = ~id,
                    labelOptions = labelOptions(noHide = T, 
                                                direction = "top",
                                                offset = c(0, -15))) %>% 
-   setView(-122, 47.66,  zoom = 15)  %>%
+  # setView(-122, 47.66,  zoom = 15)  %>%
   addScaleBar()
 
 
