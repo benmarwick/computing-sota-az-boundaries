@@ -509,7 +509,7 @@ library(leaflet)
 gjsf <- st_read("input/W7W_KG.geojson")
 
 which_summit <- 
-  which(summit_geometry$summit == "W7W_KG_139")
+  which(summit_geometry$summit == "W7W_KG_143")
 
 l <- 
 leaflet() %>% 

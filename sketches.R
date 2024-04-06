@@ -5,6 +5,8 @@
 # KG-041, KG-042 summit is about 20 m outside of the polygon, done
 # KG-120 is abrupt on the south edge, needs a bigger raster, done
 # KG-139 has abrupt edges, needs a bigger raster, done
+# KG-143 has abrupt edges, needs a bigger raster, done
+
 
 library(httr2)
 
