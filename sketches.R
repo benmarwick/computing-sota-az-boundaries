@@ -1,10 +1,10 @@
 
 # exploring getting elevation data from 
 # https://lidarportal.dnr.wa.gov/
-# KG-141 and KG-142 are unusually large
-# KG-041, KG-042 summit is about 20 m outside of the polygon
-# KG-120 is abrupt on the south edge, needs a bigger raster
-# KG-139 has abrupt edges, needs a bigger raster
+# KG-141 and KG-142 are unusually large, done
+# KG-041, KG-042 summit is about 20 m outside of the polygon, done
+# KG-120 is abrupt on the south edge, needs a bigger raster, done
+# KG-139 has abrupt edges, needs a bigger raster, done
 
 library(httr2)
 
@@ -184,4 +184,21 @@ geojsonio::geojson_write(poly_with_summit,
 
 
 }
+
+# study the output to check if they look ok or not
+
+poly_with_summit_max_linear_dim <- 
+  map(az_files, ~.x %>% 
+        st_simplify(dTolerance = 1e1) %>% 
+        st_cast('MULTIPOINT') %>% 
+        st_cast('POINT') %>% 
+        st_distance %>% 
+        max())
+
+
+tibble(
+  summit = names(map_dbl(poly_with_summit_max_linear_dim, pluck, 1) ),
+  max_dim = map_dbl(poly_with_summit_max_linear_dim, pluck, 1)
+) %>% View
+
 
