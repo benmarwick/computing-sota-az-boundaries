@@ -30,11 +30,13 @@ activation zone:
 > information. If you operate from outside the AZ, the activation is not
 > valid and will score no points.
 
-Prior work on computing activation zones includes:
+Prior work on computing SOTA activation zones includes:
 
 - the web app <https://activation.zone/> by [Ara
-  N6ARA](https://n6ara.com/) which uses 30m elevation data provided by
-  the [elevation Python package](https://pypi.org/project/elevation/).
+  N6ARA](https://n6ara.com/) which uses 30m elevation data with global
+  coverage provided by the [elevation Python
+  package](https://pypi.org/project/elevation/). This is fast and easy
+  to use, but relatively low resolution.
 - On [sotl.as](https://sotl.as/) activation zones are visible in the map
   view for HB/HB0 (calculated using
   [swissALTI3D](https://www.swisstopo.admin.ch/de/hoehenmodell-swissalti3d)
@@ -49,22 +51,25 @@ Prior work on computing activation zones includes:
   [tutorial](https://www.youtube.com/watch?v=UixA1Fc4D1c) on how to do
   this). CalTopo’s elevation data is up to 1 meter resolution in many
   areas, which is based on LIDAR scans from the USGS’s 3DEP program.
-  This is currently the highest resolution freely available tool for
-  on-the-fly computation of activation zone areas.
+  This is a high resolution freely available tool for on-the-fly
+  computation of activation zone areas. However, it can be a bit fiddly
+  to use when using on a small screen on a summit.
 
 The goal of these project is generate activation zone polygons as
 GeoJSON files that can be integrated into the sotl.as map. This is
 inspired by the work done for HB/HB0 and OE, where operators can view
 the activation zone polygon directly in the sotl.as map Currently this
 project only does summits in the W7W-KG area. Here I use the R
-programming language to access the API for [Amazon Web Services (AWS)
-Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) to download
-a small raster file of elevation data for each summit, and compute the
-activation zone polygon and save it to a GeoJSON file. Higher resolution
-rasters are available at <https://lidarportal.dnr.wa.gov/>, but
-currently there is no API for these.
+programming language to access the Washington State’s Department of
+Natural Resources public LIDAR portal: <https://lidarportal.dnr.wa.gov/>
+For each SOTA summit I download a small raster file of elevation data
+for each summit, and compute the activation zone polygon and save it to
+a GeoJSON file. Specifically, we use the Digital Terrain Models (DTMs)
+from these four datasets: East Cascades South 2020, East Cascades North
+2020, King County East 2021, King County East 2021. Spatial resolution
+of these datasets is about 0.2 m.
 
-### Acquire the data
+### Prepare the summit locations and bounding boxes
 
 Let’s load the libraries we’ll need
 
@@ -77,6 +82,7 @@ library(sf)
 library(tidyverse)
 library(ggrepel)
 library(ggspatial)
+library(httr2)
 ```
 
 Import a GeoJSON file containing the locations and elevations of SOTA
@@ -84,15 +90,7 @@ summits. I got this file from <https://sotl.as/summits/W7W/KG>.
 
 ``` r
 # get all summits via the GeoJSON download
-gjsf <- st_read("input/W7W_KG.geojson")
-#> Reading layer `W7W_KG' from data source 
-#>   `/Users/bmarwick/Downloads/computing-sota-az-boundaries/input/W7W_KG.geojson' 
-#>   using driver `GeoJSON'
-#> Simple feature collection with 160 features and 4 fields
-#> Geometry type: POINT
-#> Dimension:     XY
-#> Bounding box:  xmin: -122.4141 ymin: 47.1287 xmax: -121.0704 ymax: 47.7793
-#> Geodetic CRS:  WGS 84
+gjsf <- st_read("input/W7W_KG.geojson", quiet = TRUE)
 ```
 
 Extract the location coordinates into columns so we can use them later,
@@ -109,11 +107,13 @@ gjsf %>%
          y = st_coordinates(geometry)[,"Y"])
 ```
 
-Create a square buffer area of 1000m by 1000m around each summit, with
-the summit in the center. This is the area that we will download a
-raster of elevation data to compute the activation zone. This area is
-good enough for most summits, but for a few summits with very large
-activation zones it’s too small, we’ll deal with that later.
+Create a square buffer area around each summit, with the summit in the
+center. This is the area that we will download a raster of elevation
+data to compute the activation zone. This area is good enough for most
+summits, but for a few summits with very large activation zones it’s too
+small, we must increase the buffer side length to ensure we capture the
+full area of the activation zone. I did this manually for the small
+number of summits that needed it.
 
 ``` r
 # make a single square buffer for each point
@@ -126,7 +126,7 @@ bSquare <- function(x, a) {
 }
 
 # get a buffer zone of a certain area
-buffer_side_length <- 1e6 # 100 is a 10x10
+buffer_side_length <- 1e6 # 100 is a 10x10, this is the value we manually adjust to manage buffer area, up to 4e7 to get the biggest AZ
 gjsf_elev_buf <- 
 bSquare(gjsf_elev, buffer_side_length)
 
@@ -181,25 +181,12 @@ Here is a loop that takes each summit and its bounding box and:
 - then selects all the pixels in the raster that have an elevation value
   between the summit elevation and 25m below that elevation
 - then draw a polygon around those pixels
-- then drop polygons that don’t contain the summit point
-- then check if the activation zone polygon has the same dimension as
-  the buffer zone, if it does, make the buffer zone much bigger and
-  repeat the steps above to properly handle summits with unusually large
-  activation zones
+- then drop polygons that don’t contain the summit point, or are with 20
+  m of it (since a few summits are outside of their activation zone)
 - then write the polygon of the activation zone to a GeoJSON file
 
-The raster tiles come from the [Amazon Web Services (AWS) Terrain
-Tiles](https://registry.opendata.aws/terrain-tiles/). The resolution is
-probably around 5-7 m per pixel at the zoom level we are using here.
-This is currently the maximum available through the
-[OpenTopography](https://opentopography.org/) API. More details on
-resolution and zoom level is still available in the [documentation on
-ground
-resolution](https://github.com/tilezen/joerd/blob/master/docs/data-sources.md#what-is-the-ground-resolution).
-These tiles can be browsed at <https://eos.com/landviewer/>
-
-This chunk of code takes several minutes to run and downloads raster
-tiles on each iteration of the loop. If you are viewing this in the
+This chunk of code takes several hours to run and downloads raster tiles
+on each iteration of the loop. If you are viewing this in the
 [Binder](https://mybinder.org/v2/gh/benmarwick/computing-sota-az-boundaries/master?urlpath=rstudio)
 instance, you can skip this step and jump down to where we [inspect the
 data](#inspect-all-the-summits-and-activation-zones-in-our-set)
@@ -208,315 +195,193 @@ data](#inspect-all-the-summits-and-activation-zones-in-our-set)
 # loop over each bounding box, get the DSM raster 
 # and find the AZ polygon and save as geoJSON
 
-# create a list to store some output from this loop
-loop_output <- vector("list", nrow(gjsf_elev))
-loop_output$this_summit_point <- NULL
-loop_output$bbx_ras <- NULL
-loop_output$this_summit_point_az <- NULL
-loop_output$poly_with_summit <- NULL
+az_elev_m <- 25 # AZ is area -25m elevation from summit
 
-#----------------------------------
 for(i in 1:nrow(gjsf_elev)){
   
-this_summit_point <- gjsf_elev[i, ]
-
-loop_output$this_summit_point[[i]] <- this_summit_point
+  this_summit <- gjsf_elev[i, ] 
+  this_square <- gjsf_elev_buf_sq_df[i, ]
   
-print(paste0("Starting work on the AZ for ", this_summit_point$id,
+  print(paste0("Starting work on the AZ for ", this_summit$id,
                "..."))
-  
-# extract the bounding box for just this summit
-bbx_st_poly <- gjsf_elev_buf_sq_df[i, ]
 
-# Get the raster data from AWS
-# Elevation units are in meters.
-bbx_ras =
-  elevatr::get_elev_raster(bbx_st_poly %>% 
-                             st_cast("POINT"), 
-                           src = "aws",
-                           clip = "bbox", 
-                           verbose = TRUE, 
-                           # resolution info is here 
-                           # https://github.com/tilezen/joerd/blob/master/docs/data-sources.md#what-is-the-ground-resolution
-                           # around 5 m / pixel at z = 14 ?
-                           z = 14, # this is the max possible
-                           prj = sf::st_crs(bbx_st_poly))
+# simplify bounding box coords
+bbx_m <- 
+  gjsf_elev_buf_sq_df[i, ] %>% 
+  st_cast("POINT") %>% 
+  st_coordinates()
 
-loop_output$bbx_ras[[i]] <- bbx_ras
+# construct URL to query the LIDAR data portal using our bbox coords
+url <- paste0("https://lidarportal.dnr.wa.gov/download?geojson=%7B%22type%22%3A%22Polygon%22%2C%22",
+              "coordinates%22%3A%5B%5B%5B",
+              bbx_m[1,1], "%2C", bbx_m[1,2], "%5D%2C%5B",
+              bbx_m[2,1], "%2C", bbx_m[2,2], "%5D%2C%5B", 
+              bbx_m[3,1], "%2C", bbx_m[3,2], "%5D%2C%5B",
+              bbx_m[4,1], "%2C", bbx_m[4,2], "%5D%2C%5B",
+              bbx_m[5,1], "%2C", bbx_m[5,2], "%5D%5D%5D%7D",
+              "&ids=",
+              "1615", "%2C",   # East Cascades South 2020 DTM (not hillshade)
+              "1609", "%2C",   # East Cascades North 2020 DTM (not hillshade)
+              "1501", "%2C",   # King County East 2021 DTM (not hillshade)
+              "1603"           # King County East 2021 DTM (not hillshade)
+                               # 
+)
 
-# Create a function to process the elevation raster to get the AZ polygon
-# we make a function so we can re-use it later
-get_az_polygon_fn <- function(bbx_ras = bbx_ras){
+print(paste0("Downloading LIDAR data for ", this_summit$id,
+             "..."))
 
-# get max elev from raster
-bbx_ras_max <- maxValue(bbx_ras)
+# send our query to the LIDAR portal, unzip the response and import the tif file
+req <- request(url)
+resp <- req %>% req_perform()
+v = resp_body_raw(resp)
+rm(resp)
+writeBin(v, "data.zip")
+rm(v)
+unzip("data.zip", 
+      exdir = "from_url_req/")
+unlink("data.zip")
+the_raster_files <- 
+  list.files(path = here::here("from_url_req/"),
+             pattern = "*.tif",
+             full.names = TRUE,
+             ignore.case = TRUE,
+             recursive = TRUE)
 
-# find area that is in AZ in meters. If the SOTA summit elev is 
-# greater than the max elev in the raster, this is an error, so
-# let's handle it. e.g. elevation for Boise Ridge W7W/KG-114 
-# might be wrong: max in raster is 941m, but SOTA data is 969m
+# import into our R session, mostly there are multiple tif 
+# files, but sometimes just one
+if(length(the_raster_files) == 1){
+  m <- rast(the_raster_files)
+} else {
+  m <- sprc(the_raster_files)
+  m <- terra::merge(m, gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
+}
 
-az_elev <- 20 # AZ is area -25m elevation from summit, 
-              # we take a conservative approach here to 
-              # compensate for the raster resolution, gps error, etc.
+# transform summit and bounding box coords 
+# to the projection of LIDAR data
+this_square_nad83 <- st_transform(this_square, st_crs(m))
+this_summit_nad83 <- st_transform(this_summit, st_crs(m))
+
+# subset LIDAR data that fills just this square
+lidar_cropped <- 
+  terra::crop(m, this_square_nad83)
+
+# delete downloaded files
+unlink(here::here("from_url_req/"), recursive = TRUE)
+
+# # take a look
+# ggplot() +
+#   geom_spatraster(data = lidar_cropped) +
+#   geom_sf(data = this_summit_nad83) +
+#   geom_sf(data = this_square_nad83,
+#           fill = NA) +
+#   scale_fill_viridis_c(na.value = "white",
+#                        name = "Elevation (ft)") +
+#   annotation_scale(location = "bl",
+#                    width_hint = 0.5,
+#                    pad_y = unit(0.1, "cm"),
+#                    pad_x = unit(0.5, "cm"),
+#                    style =  "ticks") +
+#   coord_sf()
+
+# get max elevation in this area
+lidar_cropped_max_elev_ft <- minmax(lidar_cropped)[2]
 
 # define elevation contour that bounds the AZ
 this_summit_point_az <- 
-    this_summit_point %>% 
-    mutate(bbx_ras_max = bbx_ras_max, # this is helpful for debugging
-           az_lower_contour = ifelse(elev_m <= bbx_ras_max,
-                                     elev_m - az_elev,         
-                                     bbx_ras_max - az_elev ))   # SOTA summit data does not always match raster data
+  this_summit_nad83 %>% 
+  mutate(lidar_cropped_max_elev_ft = lidar_cropped_max_elev_ft, 
+         lidar_cropped_max_elev_m = lidar_cropped_max_elev_ft / 3.2808399,
+         az_lower_contour = ifelse(elev_m <= lidar_cropped_max_elev_m,
+                                   elev_m - az_elev_m,         
+                                   lidar_cropped_max_elev_m - az_elev_m ),  # SOTA summit data does not always match raster data
+         az_lower_contour_ft = az_lower_contour * 3.2808399) 
 
 # subset the summit point that is in this bbox
-rast <- bbx_ras
-rast[rast < this_summit_point_az$az_lower_contour] <- NA
-  
+lidar_cropped[lidar_cropped < this_summit_point_az$az_lower_contour_ft] <- NA
+
+# # take a look
+# ggplot() +
+#   geom_spatraster(data = lidar_cropped) +
+#   geom_sf(data = this_summit_nad83) +
+#   geom_sf(data = this_square_nad83,
+#           fill = NA) +
+#   scale_fill_viridis_c(na.value = "white",
+#                        name = "Elevation (ft)") +
+#   annotation_scale(location = "bl",
+#                    width_hint = 0.5,
+#                    pad_y = unit(0.1, "cm"),
+#                    pad_x = unit(0.5, "cm"),
+#                    style =  "ticks") +
+#   coord_sf()
+
 # get extent of the AZ raster as polygon
-az_poly <- st_as_sf(as.polygons(rast(rast) > -Inf))
-  
+az_poly <- st_as_sf(as.polygons(lidar_cropped > -Inf))
+
+# ggplot() +
+# geom_sf(data = this_summit_nad83) +
+# geom_sf(data = az_poly,
+#         colour = "red",
+#         fill = NA) +
+# scale_fill_viridis_c(na.value = "white",
+#                      name = "Elevation (ft)") +
+# annotation_scale(location = "bl",
+#                  width_hint = 0.5,
+#                  pad_y = unit(0.1, "cm"),
+#                  pad_x = unit(0.5, "cm"),
+#                  style =  "ticks") +
+# coord_sf()
+
 # if there are multiple polygons, we only want the one that 
 # contains the summit point when we have multipolys, 
 # we just want the one with the summit in it
-  
-df_union_cast <- st_cast(az_poly, "POLYGON")
-  
+
+# dissolve all into one polygon
+df_union_cast <- sf::st_union(sf::st_as_sf(az_poly))
+df_union_cast <- st_cast(df_union_cast, "POLYGON")
+
 poly_with_summit <- 
-    apply(st_is_within_distance(df_union_cast, 
-                        this_summit_point, 
-                        sparse = FALSE,
-                        dist = 10), 2, # within or 10 m outside of, because some 
-                                       # summits are just outside of their
-                                       # nearest polygon
-          function(col) { 
-            df_union_cast[which(col), ]
-          })[[1]]
+  apply(st_is_within_distance(df_union_cast, 
+                              this_summit_nad83, 
+                              sparse = FALSE,
+                              dist = 25), 2, # within or 10 m outside of, because some 
+        # summits are just outside of their
+        # nearest polygon
+        function(col) { 
+          df_union_cast[which(col), ]
+        })[[1]]
 
-  # what is the longest linear dimension of this AZ polygon?
-  # if it's the same as the bbox dimensions, then our bbox is 
-  # probably too small and we need to get a bigger one
-  poly_with_summit_max_linear_dim <- 
-  poly_with_summit %>% 
-        st_cast('MULTIPOINT') %>% 
-        st_cast('POINT') %>% 
-        st_distance %>% 
-        max()
-  
-  return(list(this_summit_point_az = this_summit_point_az,
-              poly_with_summit = poly_with_summit,
-              poly_with_summit_max_linear_dim = poly_with_summit_max_linear_dim))
-  
-}
+# # now we see the single polygon that is the activation zone
+ggplot() +
+  geom_sf(data = poly_with_summit) +
+  geom_sf(data = this_summit_nad83) +
+  coord_sf() +
+  annotation_scale(location = "bl", 
+                   width_hint = 0.5,
+                   pad_y = unit(0.1, "cm"),
+                   pad_x = unit(0.5, "cm"),
+                   style =  "ticks") 
 
-# run the function
-output <- get_az_polygon_fn(bbx_ras = bbx_ras)
+poly_with_summit <- st_as_sf(st_transform(poly_with_summit, st_crs(this_summit)))
 
-# collect some output
-loop_output$this_summit_point_az[[i]] <- output$this_summit_point_az
-loop_output$poly_with_summit[[i]] <- output$poly_with_summit
-  
-  class(output$poly_with_summit_max_linear_dim) <- "numeric"
-  
-# check if we got the entire AZ or we need to compute on a larger raster
-  if(output$poly_with_summit_max_linear_dim < sqrt(buffer_side_length)) {
-    
-    print(paste0("OK: the max linear dimenstion of the AZ computed for ",
-                 this_summit_point$id,
-                 " is smaller than our bounding box"))
-    
-    print(paste0("The AZ for ", this_summit_point$id,
-                 " was successfully computed"))
-  } else {
-     
-    print(paste0("Not OK: the max linear dimenstion of the AZ computed for ",
-                 this_summit_point$id,
-                 " is bigger than our bounding box. Trying a bigger bounding box..."))
-    
-    bbx_st_poly_enlarged <- 
-      bSquare(bbx_st_poly, 
-              buffer_side_length * 100)
-    
-    bbx_ras_enlarged =
-      elevatr::get_elev_raster(bbx_st_poly_enlarged %>% 
-                                 st_cast("POINT"), 
-                               src = "aws",
-                               clip = "bbox", 
-                               verbose = TRUE, 
-                               # resolution info is here 
-                               # https://github.com/tilezen/joerd/blob/master/docs/data-sources.md#what-is-the-ground-resolution
-                               # around 5 m / pixel at z = 14 ?
-                               z = 14, # this is the max possible
-                               prj =  "WGS84")
-    
-    # run the custom function to get the AZ polygon using this
-    # much enlarged area of raster elevation 
-    output <- get_az_polygon_fn(bbx_ras = bbx_ras_enlarged)
-    
-    # collect some output
-loop_output$this_summit_point_az[[i]] <- output$this_summit_point_az
-loop_output$poly_with_summit[[i]] <- output$poly_with_summit
-    
-    print(paste0("Finished trying a bigger bounding box for ",
-                 this_summit_point$id))
-  }
-  
+print(paste0("Saving GeoJSON file for ", this_summit$id,
+             "..."))
+
 # write AZ polygon to a GeoJSON file
-file_name <- paste0("output/", str_replace_all(this_summit_point$id, "/|-", "_"), 
+file_name <- paste0("output/", str_replace_all(this_summit$id, "/|-", "_"), 
                     ".geojson")
 
 # export AZ polygon as a GeoJSON file
-geojsonio::geojson_write(output$poly_with_summit, 
+geojsonio::geojson_write(poly_with_summit, 
                          file = here::here(file_name),
                          quiet = TRUE)
+
+
 }
 ```
 
 After running the code block above we now have one GeoJSON file per
 summit with a polygon defining its activation zone in our `/output`
 directory.
-
-Here are all the summits in W7W/KG (red points) and their activation
-zones as computed above (grey polygons):
-
-``` r
-this_summit_point_df <- bind_rows(loop_output$this_summit_point) # 160 
-this_summit_point_az_df <- bind_rows(loop_output$this_summit_point_az) # 160
-poly_with_summit_df <- bind_rows(loop_output$poly_with_summit) %>% select(geometry) # 160
-
-# take a look at the summits and AZs
-  ggplot() +
-    geom_sf(data = poly_with_summit_df) + 
-    geom_sf(data = this_summit_point_df,
-            colour ="red",
-            fill = NA,
-            size = 0.1) +
-    geom_text_repel(data = this_summit_point_df,
-                    aes( x, y,
-                         label = name),
-                    bg.color = "white",
-                    bg.r = 0.1,
-                    size = 1.5,
-                    segment.colour= "grey") +
-    annotation_scale(location = "bl", 
-                     width_hint = 0.5,
-                     pad_y = unit(0.1, "cm"),
-                     pad_x = unit(0.5, "cm"),
-                    style =  "ticks") +
-    coord_sf() +
-    theme_minimal(base_size = 8)
-```
-
-![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
-
-Here is a close-up look at one summit and the activation zone we have
-computed for it:
-
-``` r
-# take a look at a summit and AZ
-i <- which(str_detect(this_summit_point_df$name, "Tiger"))[2]
-
-ggplot() +
-    geom_spatraster(data = rast(loop_output$bbx_ras[[i]])) +
-    geom_sf(data = poly_with_summit_df[i,],
-            colour ="red",
-            fill = NA) +
-    geom_point(data = this_summit_point_az_df[i,],
-               aes(x, y)) + 
-    geom_text_repel(data = this_summit_point_az_df[i,],
-                    aes( x, y,
-                         label = name),
-                    bg.color = "white",
-                    bg.r = 0.1) +
-    scale_fill_viridis_c(na.value = "white",
-                         name = "Elevation (m)") +
-    annotation_scale(location = "bl", 
-                     width_hint = 0.5,
-                     pad_y = unit(0.1, "cm"),
-                     pad_x = unit(0.5, "cm"),
-                    style =  "ticks") +
-    coord_sf() +
-    theme_minimal(base_size = 8)
-```
-
-![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
-
-Here’s a comparison with two other methods. The green polygon is from
-<https://activation.zone/?summitRef=W7W/KG-116> and the yellow polygon
-is the activation zone computed using the code above. The red-blue
-polygon is the activation zone determined by the Caltopo DEM shading
-tool. This map with the three activation zones is also online at
-<https://caltopo.com/m/GPM5V>
-
-``` r
-knitr::include_graphics("input/az-comparison-figure.jpeg")
-```
-
-<img src="input/az-comparison-figure.jpeg" width="100%" />
-
-<!-- 
-&#10;### Differences between summit elevation values in the SOTA data and in the [Amazon Web Services (AWS) Terrain Tiles](https://registry.opendata.aws/terrain-tiles/).
-&#10;In developing this analysis I found that some summits have elevation values recorded in the SOTA data that are different from the elevation data in the Terrain Tiles. The differences in elevation of summits mean that some activation zones calculated here might not be accurate. In the plot below, the upper panel shows the full range of summits where the SOTA elevation differs from the Terrain Tiles, and the lower panel is a zoomed in view at -25m, 25m. The labelled summits, especially those in the top panel that deviate more than 20m, are ones where the activation zones computed here may be slightly inaccurate.
-&#10;
-```r
-library(ggforce)
-&#10;this_summit_point_az_df_outliers1 <- 
-this_summit_point_az_df %>% 
-  mutate(diff_elev = bbx_ras_max - elev_m) %>% 
-  filter(  diff_elev >= 20 | diff_elev <= -20 )
-&#10;this_summit_point_az_df_outliers2 <- 
-this_summit_point_az_df %>% 
-  mutate(diff_elev = bbx_ras_max - elev_m) %>% 
-  filter(  diff_elev >= 5 | diff_elev <= -5 ) %>% 
-  filter(between(  diff_elev, -25, 25))
-&#10;p1 <- 
-this_summit_point_az_df %>% 
-  mutate(diff_elev = bbx_ras_max - elev_m) %>% 
-ggplot() +
-  aes(diff_elev) +
-  geom_histogram(bins = 100)  +
-  theme_minimal() +
-geom_text_repel(data = this_summit_point_az_df_outliers1,
-                aes(x = diff_elev,
-                    y = 5,
-                    size = 2,
-                    hjust        = 0.5,
-                    segment.size = 0.2,
-                    label = id),
-                    nudge_y      = 30,
-                    direction    = "x",
-                    max.overlaps = 4,
-                    angle = 90) +
-  guides(text = "none",
-         size = "none") +
-  xlab("")
-&#10;p2 <- 
-  this_summit_point_az_df %>% 
-  mutate(diff_elev = bbx_ras_max - elev_m) %>% 
-   filter(between(diff_elev, -25, 25)) %>% 
-ggplot() +
-  aes(diff_elev) +
-  geom_histogram(bins = 100)  +
-  theme_minimal()  +
-geom_text_repel(data = this_summit_point_az_df_outliers2,
-                aes(x = diff_elev,
-                    y = 5,
-                    size = 2,
-                    hjust        = 0.5,
-                    segment.size = 0.2,
-                    label = id),
-                    nudge_y      = 30,
-                    direction    = "x",
-                    max.overlaps = 4,
-                    angle = 90) +
-  guides(text = "none",
-         size = "none") +
-  xlab("Difference in elevation between the SOTA value and the AWS Terrain tiles (m)")
-&#10;library(cowplot)
-plot_grid(p1, p2, nrow = 2)
-```
-&#10;![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
-
-–\>
 
 ### Inspect all the summits and activation zones in our set
 
@@ -538,7 +403,8 @@ gjson_files <-
 
 az_files <- 
   map(gjson_files,
-      st_read) 
+      st_read,
+      quiet = TRUE) 
 
 names(az_files) <- str_remove_all(basename(gjson_files), 
                                   "output|.geojson")
@@ -547,6 +413,49 @@ summit_geometry <-
   bind_rows(az_files, .id = "summit") %>% 
   select(summit, geometry)
 ```
+
+Here are all the summits in W7W/KG and their activation zones as
+computed above (grey polygons), the red squares are my arbitrary buffer
+zones that I downloaded the LIDAR data for:
+
+``` r
+# take a look at the summits and AZs
+  ggplot() +
+    geom_sf(data = summit_geometry) + 
+    geom_sf(data = gjsf_elev_buf_sq_df,
+            colour ="red",
+            fill = NA,
+            size = 0.1) +
+    geom_text_repel(data = gjsf_elev,
+                    aes( x, y,
+                         label = name),
+                    bg.color = "white",
+                    bg.r = 0.1,
+                    size = 1.5,
+                    segment.colour= "grey") +
+    annotation_scale(location = "bl", 
+                     width_hint = 0.5,
+                     pad_y = unit(0.1, "cm"),
+                     pad_x = unit(0.5, "cm"),
+                    style =  "ticks") +
+    coord_sf() +
+    theme_minimal(base_size = 8)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+
+Here’s a comparison with two other methods. The green outline polygon is
+from <https://activation.zone/?summitRef=W7W/KG-116> and the blue
+outline polygon is the activation zone computed using the code above.
+The red-blue filled polygon is the activation zone determined by the
+Caltopo DEM shading tool. This map with the three activation zones is
+also online at <https://caltopo.com/m/GPM5V>
+
+``` r
+knitr::include_graphics("input/az-comparison-figure.jpeg")
+```
+
+<img src="input/az-comparison-figure.jpeg" width="100%" />
 
 This code block makes an interactive map of the summits and activation
 zones. On GitHub this shows as a static image. Here we have zoomed in on
@@ -567,29 +476,32 @@ gjsf <- st_read("input/W7W_KG.geojson")
 #> Bounding box:  xmin: -122.4141 ymin: 47.1287 xmax: -121.0704 ymax: 47.7793
 #> Geodetic CRS:  WGS 84
 
+which_summit <- 
+  which(summit_geometry$summit == "W7W_KG_142")
+
 l <- 
 leaflet() %>% 
   addProviderTiles("OpenStreetMap") %>% 
-  addPolygons(data = summit_geometry,
+  addPolygons(data = summit_geometry[which_summit,],
               color = "red", 
               weight = 1) %>% 
   addCircleMarkers(data = gjsf %>% 
                      mutate(id = str_replace_all(id, "/|-", "_")) %>% 
-                     filter(id %in% summit_geometry$summit ),
+                     filter(id %in% summit_geometry[which_summit,]$summit ),
                    radius = 1,
                    weight = 1,
                    label = ~id,
                    labelOptions = labelOptions(noHide = T, 
                                                direction = "top",
                                                offset = c(0, -15))) %>% 
-   setView(-122, 47.66,  zoom = 15)  %>%
+  # setView(-122, 47.66,  zoom = 15)  %>%
   addScaleBar()
 
 
 l # open the interactive map for panning and zooming over all the summits
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
 
 ### Licenses
 
