@@ -403,24 +403,24 @@ library(leaflet)
 gjsf <- st_read("input/W7W_KG.geojson")
 
 which_summit <- 
-  which(summit_geometry$summit == "W7W_KG_142")
+  which(summit_geometry$summit == "W7W_KG_100")
 
 l <- 
 leaflet() %>% 
   addProviderTiles("OpenStreetMap") %>% 
-  addPolygons(data = summit_geometry[which_summit,],
+  addPolygons(data = summit_geometry,
               color = "red", 
               weight = 1) %>% 
   addCircleMarkers(data = gjsf %>% 
                      mutate(id = str_replace_all(id, "/|-", "_")) %>% 
-                     filter(id %in% summit_geometry[which_summit,]$summit ),
+                     filter(id %in% summit_geometry$summit ),
                    radius = 1,
                    weight = 1,
                    label = ~id,
                    labelOptions = labelOptions(noHide = T, 
                                                direction = "top",
                                                offset = c(0, -15))) %>% 
-  # setView(-122, 47.66,  zoom = 15)  %>%
+  setView(-122, 47.66,  zoom = 15)  %>%
   addScaleBar()
 
 
