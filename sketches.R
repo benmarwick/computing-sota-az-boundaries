@@ -73,7 +73,8 @@ if(length(the_raster_files) == 1){
   m <- terra::merge(m, gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
 }
 
-# transform to projection of LIDAR data
+# transform summit and bounding box coords 
+# to the projection of LIDAR data
 this_square_nad83 <- st_transform(this_square, st_crs(m))
 this_summit_nad83 <- st_transform(this_summit, st_crs(m))
 
