@@ -427,6 +427,23 @@ leaflet() %>%
 l # open the interactive map for panning and zooming over all the summits
 ```
 
+
+```{r, eval = FALSE, echo=FALSE}
+# distribution of summit AZ areas
+library(units)
+
+st_area(summit_geometry) %>% 
+  tibble(area = .) %>% 
+  mutate(area = as.numeric(area)) %>% 
+  ggplot() +
+  aes(area) %>% 
+  geom_histogram() +
+  scale_x_log10(labels = scales::label_comma(),
+                name = "Size of activation zone (square m)")
+
+```
+
+
 ### Licenses
 
 **Text and figures :** [CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
