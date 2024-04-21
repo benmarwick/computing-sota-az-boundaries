@@ -93,7 +93,7 @@ bSquare <- function(x, a) {
 }
 
 # get a buffer zone of a certain area
-buffer_side_length <- 5e6 # 100 is a 10x10, this is the value we manually adjust to manage buffer area, up to 4e7 to get the biggest AZ
+buffer_side_length <- 9e6 # 100 is a 10x10, this is the value we manually adjust to manage buffer area, up to 4e7 to get the biggest AZ
 gjsf_elev_buf <- 
 bSquare(gjsf_elev, buffer_side_length)
 
@@ -181,32 +181,34 @@ url <- paste0("https://lidarportal.dnr.wa.gov/download?geojson=%7B%22type%22%3A%
               bbx_m[4,1], "%2C", bbx_m[4,2], "%5D%2C%5B",
               bbx_m[5,1], "%2C", bbx_m[5,2], "%5D%5D%5D%7D",
               "&ids=",
-              "1615", 
-               "%2C",    # East Cascades South 2020 DTM (not hillshade)
-              "1609", 
-               "%2C",     # East Cascades North 2020 DTM (not hillshade)
-              "1501", 
-               "%2C",      # King County East 2021 DTM (not hillshade)
-              "1603", 
-               "%2C",     # King County East 2021 DTM (not hillshade)
-               "1231", 
-               "%2C",     # Yakima Basin North 2018
-               "826",    
-               "%2C",     # Colockum 2014
-              "1463",    
-               "%2C",     # Manastash 2018
-           #    "733",      
-           #    "%2C",    # Yakima K2K 2014
-                "1555",     
-                "%2C",     # Cle Elum Forest Studies 2021
-                "40",
-                "%2C",     # Teanaway 2015
-                "45",
-                "%2C",     # Wenatchee 2009
-                "1265",
-                "%2C",     # Yakima Basin 2018
-                "1495",
-                "%2C"     # Paco Basin 2020
+             "1615", 
+              "%2C",    # East Cascades South 2020 DTM (not hillshade)
+             "1609", 
+              "%2C",     # East Cascades North 2020 DTM (not hillshade)
+             "1501", 
+              "%2C",      # King County East 2021 DTM (not hillshade)
+             "1603", 
+              "%2C",     # King County East 2021 DTM (not hillshade)
+             "1231" , 
+             "%2C"  ,     # Yakima Basin North 2018
+              "825",    
+              "%2C",     # Colockum 2014
+             "1463",    
+              "%2C",     # Manastash 2018
+              "733",      
+              "%2C",    # Yakima K2K 2014
+               "1555",     
+               "%2C",     # Cle Elum Forest Studies 2021
+               "40",
+               "%2C",     # Teanaway 2015
+               "45",
+               "%2C",     # Wenatchee 2009
+               "1265",
+               "%2C",     # Yakima Basin 2018
+               "1495",
+               "%2C",     # Paco Basin 2020
+               "877",
+               "%2C"     # Columbia 2010 B
 )
 
 # when we get an error, search for the summit on sotl.as, open the summit in caltopo, paste the coords into the lidar URL, select the summit and see what LIDAR dataset is available. 
@@ -255,6 +257,7 @@ unlink(here::here("from_url_req/"), recursive = TRUE)
 # # take a look
 ggplot() +
   geom_spatraster(data = lidar_cropped) +
+ # geom_spatraster(data = m) +
   geom_sf(data = this_summit_nad83) +
   geom_sf(data = this_square_nad83,
           fill = NA) +
@@ -342,7 +345,8 @@ ggplot() +
                    width_hint = 0.5,
                    pad_y = unit(0.1, "cm"),
                    pad_x = unit(0.5, "cm"),
-                   style =  "ticks") 
+                   style =  "ticks")  
+  
 
 poly_with_summit <- st_as_sf(st_transform(poly_with_summit, st_crs(this_summit)))
 
@@ -427,7 +431,7 @@ library(leaflet)
 gjsf <- st_read("W7W_CW/input/W7W_CW.geojson")
 
 which_summit <- 
-  which(summit_geometry$summit == "W7W_CW_050")
+  which(summit_geometry$summit == "W7W_CW_082")
 
 which_summit_lng_lat <- 
 as.vector(st_coordinates(summit_geometry[which_summit, ])[1,1:2])
@@ -456,12 +460,5 @@ leaflet() %>%
 l # open the interactive map for panning and zooming over all the summits
 ```
 
-truncated: 
 
-CW_013  on the N edge, KG-CH county line
-CW_016 on the N edge
-CW_017 N and E edges, very large
-CW_030 E edge
-CW_032 E edge
-CW_038 all edges
 

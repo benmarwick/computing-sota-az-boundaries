@@ -1,32 +1,33 @@
 
-# group multiple similar rasters
+# group multiple similar rasters 
+# with different resolutions
 
 # here's one group of rasters with similar resolution
-# m1 <- rast(the_raster_files[c(1)])
-m1 <- sprc(the_raster_files[c(1,2)])
-m1 <- terra::merge(m1, gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
+ m1 <- rast(the_raster_files[c(1)])
+#m1 <- sprc(the_raster_files[c(1,2)])
+#m1 <- terra::merge(m1, gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
 
-plot(m1)
+plot(m1) # hi res
 
 # here's another group of rasters with similar resolution
-# m2 <- rast(the_raster_files[c(1)])
-m2 <- sprc(the_raster_files[c(3:6)])
-m2 <- terra::merge(m2, gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
+ m2 <- rast(the_raster_files[c(2)])
+# m2 <- sprc(the_raster_files[c(2,3)])
+# m2 <- terra::merge(m2, gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
 
-plot(m2)
+plot(m2) # low res
 
-        # hi.  /  lo
-dr <- res(m1) / res(m2)
-a <- disagg(m1, dr)
-# using "near" to avoid smoothing
-a <- resample(m1, a, "near")
-b <- aggregate(a, dr, "mean", na.rm=TRUE)
+# https://gis.stackexchange.com/a/423700
 
-plot(b)
-
-# and resume the loop
- m <- b
-
+  
+ e <- exactextractr::exact_resample(m2, #. low res raster,
+                                    m1, #  high res raster
+                                    'mean')
+plot(e)
+ 
+m <- terra::merge(e,   # output from previous
+                  m1)  # high res
+ 
+plot(m)
 
 
 
