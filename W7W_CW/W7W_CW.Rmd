@@ -35,6 +35,15 @@ Specifically for the CW region, we use the Digital Terrain Models (DTMs) from th
    -  Manastash 2018   
    -  Yakima K2K 2014   
    -  Cle Elum Forest Studies 2021   
+   
+At the time of this analysis (April 2024) there was no lidar data for:  
+
+- CW-097  
+- CW-098 
+- CW-101 
+- CW-102  
+- CW-107  
+- CW-108  
 
 ### Prepare the summit locations and bounding boxes
 
@@ -84,7 +93,7 @@ bSquare <- function(x, a) {
 }
 
 # get a buffer zone of a certain area
-buffer_side_length <- 1e6 # 100 is a 10x10, this is the value we manually adjust to manage buffer area, up to 4e7 to get the biggest AZ
+buffer_side_length <- 5e6 # 100 is a 10x10, this is the value we manually adjust to manage buffer area, up to 4e7 to get the biggest AZ
 gjsf_elev_buf <- 
 bSquare(gjsf_elev, buffer_side_length)
 
@@ -149,7 +158,7 @@ Some manual handling is needed because some lidar data sets that cover the same 
 az_elev_m <- 25 # AZ is area -25m elevation from summit
 unlink(here::here("from_url_req/"), recursive = TRUE)
 
-for(i in 73:nrow(gjsf_elev)){
+for(i in 1:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
@@ -172,7 +181,7 @@ url <- paste0("https://lidarportal.dnr.wa.gov/download?geojson=%7B%22type%22%3A%
               bbx_m[4,1], "%2C", bbx_m[4,2], "%5D%2C%5B",
               bbx_m[5,1], "%2C", bbx_m[5,2], "%5D%5D%5D%7D",
               "&ids=",
-              "1615" , 
+              "1615", 
                "%2C",    # East Cascades South 2020 DTM (not hillshade)
               "1609", 
                "%2C",     # East Cascades North 2020 DTM (not hillshade)
@@ -184,14 +193,20 @@ url <- paste0("https://lidarportal.dnr.wa.gov/download?geojson=%7B%22type%22%3A%
                "%2C",     # Yakima Basin North 2018
                "826",    
                "%2C",     # Colockum 2014
-               "1463",    
+              "1463",    
                "%2C",     # Manastash 2018
-               "733",      
-                "%2C",    #Yakima K2K 2014
+           #    "733",      
+           #    "%2C",    # Yakima K2K 2014
                 "1555",     
                 "%2C",     # Cle Elum Forest Studies 2021
                 "40",
-                "%2C"     # Teanaway 2015
+                "%2C",     # Teanaway 2015
+                "45",
+                "%2C",     # Wenatchee 2009
+                "1265",
+                "%2C",     # Yakima Basin 2018
+                "1495",
+                "%2C"     # Paco Basin 2020
 )
 
 # when we get an error, search for the summit on sotl.as, open the summit in caltopo, paste the coords into the lidar URL, select the summit and see what LIDAR dataset is available. 
@@ -209,7 +224,7 @@ rm(v)
 unzip("data.zip", 
       exdir = "from_url_req/")
 unlink("data.zip")
-the_raster_files <- 
+the_raster_files <-
   list.files(path = here::here("from_url_req/"),
              pattern = "*.tif",
              full.names = TRUE,
@@ -252,7 +267,6 @@ ggplot() +
                    style =  "ticks") +
   coord_sf()
 
-# get max elevation in this area
 lidar_cropped_max_elev_ft <- minmax(lidar_cropped)[2]
 
 # define elevation contour that bounds the AZ
@@ -413,7 +427,10 @@ library(leaflet)
 gjsf <- st_read("W7W_CW/input/W7W_CW.geojson")
 
 which_summit <- 
-  which(summit_geometry$summit == "W7W_CW_1")
+  which(summit_geometry$summit == "W7W_CW_050")
+
+which_summit_lng_lat <- 
+as.vector(st_coordinates(summit_geometry[which_summit, ])[1,1:2])
 
 l <- 
 leaflet() %>% 
@@ -423,17 +440,28 @@ leaflet() %>%
               weight = 1) %>% 
   addCircleMarkers(data = gjsf %>% 
                      mutate(id = str_replace_all(id, "/|-", "_")) %>% 
-                     filter(id %in% summit_geometry$summit ),
+                     filter(id %in% summit_geometry$summit[which_summit] ),
                    radius = 1,
                    weight = 1,
                    label = ~id,
                    labelOptions = labelOptions(noHide = T, 
                                                direction = "top",
                                                offset = c(0, -15))) %>% 
-  setView(-122, 47.66,  zoom = 15)  %>%
+  setView(lng = which_summit_lng_lat[1],
+          lat = which_summit_lng_lat[2],  
+           zoom = 17)  %>%
   addScaleBar()
 
 
 l # open the interactive map for panning and zooming over all the summits
 ```
+
+truncated: 
+
+CW_013  on the N edge, KG-CH county line
+CW_016 on the N edge
+CW_017 N and E edges, very large
+CW_030 E edge
+CW_032 E edge
+CW_038 all edges
 

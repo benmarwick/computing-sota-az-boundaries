@@ -1,4 +1,35 @@
 
+# group multiple similar rasters
+
+# here's one group of rasters with similar resolution
+# m1 <- rast(the_raster_files[c(1)])
+m1 <- sprc(the_raster_files[c(1,2)])
+m1 <- terra::merge(m1, gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
+
+plot(m1)
+
+# here's another group of rasters with similar resolution
+# m2 <- rast(the_raster_files[c(1)])
+m2 <- sprc(the_raster_files[c(3:6)])
+m2 <- terra::merge(m2, gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
+
+plot(m2)
+
+        # hi.  /  lo
+dr <- res(m1) / res(m2)
+a <- disagg(m1, dr)
+# using "near" to avoid smoothing
+a <- resample(m1, a, "near")
+b <- aggregate(a, dr, "mean", na.rm=TRUE)
+
+plot(b)
+
+# and resume the loop
+ m <- b
+
+
+
+
 # exploring getting elevation data from 
 # https://lidarportal.dnr.wa.gov/
 # KG-141 and KG-142 are unusually large, done
