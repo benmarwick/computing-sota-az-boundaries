@@ -45,7 +45,7 @@ The goal of these project is generate activation zone polygons as GeoJSON files 
 
 Currently this repository has GeoJSON files for the following regions in the W7W association: 
 
-- KG (King County): also currently visible on [sotl.as](https://sotl.as/)
+- KG (King County): currently visible on [sotl.as](https://sotl.as/summits/W7W/KG)
 - CW (Central Washington): not yet on [sotl.as](https://sotl.as/)
 
 

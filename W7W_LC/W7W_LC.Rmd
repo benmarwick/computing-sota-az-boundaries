@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
   fig.width=7)
 ```
 
-# Computing Activation Zone Boundaries for [SOTA](https://www.sota.org.uk/) Summits in W7W-CW 
+# Computing Activation Zone Boundaries for [SOTA](https://www.sota.org.uk/) Summits in W7W-LC 
 
 <!-- badges: start -->
 
@@ -26,12 +26,7 @@ knitr::opts_chunk$set(
    
 At the time of this analysis (April 2024) there was no lidar data for:  
 
-- CW-097  
-- CW-098 
-- CW-101 
-- CW-102  
-- CW-107  
-- CW-108  
+- LC-
 
 ### Prepare the summit locations and bounding boxes
 
@@ -52,8 +47,19 @@ library(httr2)
 Import a GeoJSON file containing the locations and elevations of SOTA summits. I got this file from <https://sotl.as/summits/W7W/KG>.
 
 ```{r}
-# get all summits via the GeoJSON download
-gjsf <- st_read("W7W_CW/input/W7W_CW.geojson", quiet = TRUE)
+# get all summits via the SOTA API (because the sotlas GeoJSON doesn't have elevation data for summits in this region)
+
+library(rvest)
+gjsf <-  GET("https://api2.sota.org.uk/api/regions/W7W/LC") %>% 
+            content(., as = "text")%>% 
+            jsonlite::fromJSON() %>% 
+            purrr::pluck("summits") %>% 
+            tibble() %>% 
+  st_as_sf(coords =  c("gridRef1",
+                       "gridRef2"),
+           crs = st_crs(4326))
+
+
 ```
 
 Extract the location coordinates into columns so we can use them later, and create a column for elevation in meters because our raster data is in meters.
@@ -62,10 +68,10 @@ Extract the location coordinates into columns so we can use them later, and crea
 # make sf data frame and get coords into cols we can use
 gjsf_elev <- 
 gjsf %>% 
-  mutate(elev_m = parse_number(str_extract(title, ",\\s*(.*?)\\s*m")),
-         elev_ft = elev_m * 3.2808399) %>% 
+  mutate(elev_m = altM,
+         elev_ft = altFt) %>% 
   mutate(x = st_coordinates(geometry)[,"X"],
-         y = st_coordinates(geometry)[,"Y"])
+         y = st_coordinates(geometry)[,"Y"]) 
 ```
 
 Create a square buffer area around each summit, with the summit in the center. This is the area that we will download a raster of elevation data to compute the activation zone. This area is good enough for most summits, but for a few summits with very large activation zones it's too small, we must increase the buffer side length to ensure we capture the full area of the activation zone. I did this manually for the small number of summits that needed it. 
@@ -81,9 +87,10 @@ bSquare <- function(x, a) {
 }
 
 # get a buffer zone of a certain area
-buffer_side_length <- 9e6 # 100 is a 10x10, this is the value we manually adjust to manage buffer area, up to 4e7 to get the biggest AZ
+buffer_side_length <- 5e6 # 100 is a 10x10, this is the value we manually adjust to manage buffer area, to capture the biggest AZ
 gjsf_elev_buf <- 
-bSquare(gjsf_elev, buffer_side_length)
+  bSquare(gjsf_elev,
+          buffer_side_length)
 
 gjsf_elev_buf_sq <- vector("list", nrow(gjsf_elev_buf))
 for(i in 1:nrow(gjsf_elev_buf)){
@@ -102,7 +109,7 @@ Take a look at the buffer zones and summit points altogether
 ```{r}
 ggplot() + 
   geom_sf(data = gjsf_elev_buf_sq_df,
-          colour = "red", fill = NA) +
+           colour = "red", fill = NA) +
   geom_sf(data = gjsf,
           size = 0.1) +
   coord_sf() +
@@ -146,12 +153,12 @@ Some manual handling is needed because some lidar data sets that cover the same 
 az_elev_m <- 25 # AZ is area -25m elevation from summit
 unlink(here::here("from_url_req/"), recursive = TRUE)
 
-for(i in 1:nrow(gjsf_elev)){
+for(i in 2:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
   
-  print(paste0("Starting work on the AZ for ", this_summit$id,
+  print(paste0("Starting work on the AZ for ", this_summit$summitCode,
                "..."))
 
 # simplify bounding box coords
@@ -196,12 +203,21 @@ url <- paste0("https://lidarportal.dnr.wa.gov/download?geojson=%7B%22type%22%3A%
                "1495",
                "%2C",     # Paco Basin 2020
                "877",
-               "%2C"     # Columbia 2010 B
+               "%2C",     # Columbia 2010 B
+              "1439",  "%2C",    # Cascades South 3DEP 2019
+              "1525",  "%2C",    # Lewis East Sthelens 2020
+              "1045",  "%2C",    # Mount Adams 2016
+              "715",   "%2C",    # Wasco A 2015
+              "1253",  "%2C",   # Southwest State Lands 2017
+              "373",   "%2C",     # Wasco B 2015
+              "36",    "%2C",     # Speelyai 2015
+              "1075",  "%2C",     # Swwa Foothills 2017
+              "889",   "%2C"     # Columbia 2010 E
 )
 
 # when we get an error, search for the summit on sotl.as, open the summit in caltopo, paste the coords into the lidar URL, select the summit and see what LIDAR dataset is available. 
 
-print(paste0("Downloading LIDAR data for ", this_summit$id,
+print(paste0("Downloading LIDAR data for ", this_summit$summitCode,
              "..."))
 
 # send our query to the LIDAR portal, unzip the response and import the tif file
@@ -317,7 +333,7 @@ poly_with_summit <-
   apply(st_is_within_distance(df_union_cast, 
                               this_summit_nad83, 
                               sparse = FALSE,
-                              dist = 25), 2, # within or 10 m outside of, because some 
+                              dist = 50), 2, # within or 10 m outside of, because some 
         # summits are just outside of their
         # nearest polygon
         function(col) { 
@@ -338,11 +354,11 @@ ggplot() +
 
 poly_with_summit <- st_as_sf(st_transform(poly_with_summit, st_crs(this_summit)))
 
-print(paste0("Saving GeoJSON file for ", this_summit$id,
+print(paste0("Saving GeoJSON file for ", this_summit$summitCode,
              "..."))
 
 # write AZ polygon to a GeoJSON file
-file_name <- paste0("W7W_CW/output/", str_replace_all(this_summit$id, "/|-", "_"), 
+file_name <- paste0("W7W_LC/output/", str_replace_all(this_summit$summitCode, "/|-", "_"), 
                     ".geojson")
 
 # export AZ polygon as a GeoJSON file
@@ -366,7 +382,7 @@ library(sf)
 
 # import the GeoJSON files with the AZ polygons
 gjson_files <- 
-  list.files(path = "W7W_CW/output",
+  list.files(path = "W7W_LC/output",
              full.names = TRUE,
              recursive = TRUE)
 
@@ -416,10 +432,10 @@ This code block makes an interactive map of the summits and activation zones.
 ```{r}
 library(leaflet)
 
-gjsf <- st_read("W7W_CW/input/W7W_CW.geojson")
+gjsf <- st_read("W7W_LC/input/W7W_LC.geojson")
 
 which_summit <- 
-  which(summit_geometry$summit == "W7W_CW_082")
+  which(summit_geometry$summit == "W7W_LC_013")
 
 which_summit_lng_lat <- 
 as.vector(st_coordinates(summit_geometry[which_summit, ])[1,1:2])

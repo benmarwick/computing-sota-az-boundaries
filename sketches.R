@@ -1,4 +1,47 @@
 
+library(rvest)
+library(httr)
+library(tidyverse)
+
+# get list of regions in the W7W association
+# via API
+sota_regions_w7w <- "https://api2.sota.org.uk/api/associations/w7w"
+r <- GET(sota_regions_w7w)
+dat <- 
+  jsonlite::fromJSON(content(r, as = "text")) %>% 
+  purrr::pluck("regions") %>% 
+  tibble()
+
+# get data on number of activations in each region in W7W
+
+region_urls <- paste0("https://api2.sota.org.uk/api/regions/W7W/",
+                      dat$regionCode)
+
+# get all the data for each region, this take a few seconds
+region_summits <- 
+  map_dfr(region_urls,
+          ~GET(.x) %>% 
+            content(., as = "text")%>% 
+            jsonlite::fromJSON() %>% 
+            purrr::pluck("summits") %>% 
+            tibble() )
+
+# plot them
+region_summits %>% 
+  mutate(region = str_remove_all(shortCode, "-.*")) %>% 
+  group_by(region) %>% 
+  summarise(sum_activationCount = sum(activationCount)) %>% 
+  arrange(desc(sum_activationCount)) %>% 
+  ggplot() +
+  aes(reorder(region, 
+              -sum_activationCount),
+      sum_activationCount) +
+  geom_col() +
+  xlab("SOTA region") +
+  ylab("Number of activations")
+
+
+#--------------------------------------------------------------------------
 # group multiple similar rasters 
 # with different resolutions
 
