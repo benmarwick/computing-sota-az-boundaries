@@ -153,7 +153,7 @@ Some manual handling is needed because some lidar data sets that cover the same 
 az_elev_m <- 25 # AZ is area -25m elevation from summit
 unlink(here::here("from_url_req/"), recursive = TRUE)
 
-for(i in 2:nrow(gjsf_elev)){
+for(i in 165:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
@@ -176,43 +176,44 @@ url <- paste0("https://lidarportal.dnr.wa.gov/download?geojson=%7B%22type%22%3A%
               bbx_m[4,1], "%2C", bbx_m[4,2], "%5D%2C%5B",
               bbx_m[5,1], "%2C", bbx_m[5,2], "%5D%5D%5D%7D",
               "&ids=",
-             "1615", 
-              "%2C",    # East Cascades South 2020 DTM (not hillshade)
-             "1609", 
-              "%2C",     # East Cascades North 2020 DTM (not hillshade)
-             "1501", 
-              "%2C",      # King County East 2021 DTM (not hillshade)
-             "1603", 
-              "%2C",     # King County East 2021 DTM (not hillshade)
-             "1231" , 
-             "%2C"  ,     # Yakima Basin North 2018
-              "825",    
-              "%2C",     # Colockum 2014
-             "1463",    
-              "%2C",     # Manastash 2018
-              "733",      
-              "%2C",    # Yakima K2K 2014
-               "1555",     
-               "%2C",     # Cle Elum Forest Studies 2021
-               "40",
-               "%2C",     # Teanaway 2015
-               "45",
-               "%2C",     # Wenatchee 2009
-               "1265",
-               "%2C",     # Yakima Basin 2018
-               "1495",
-               "%2C",     # Paco Basin 2020
-               "877",
-               "%2C",     # Columbia 2010 B
-              "1439",  "%2C",    # Cascades South 3DEP 2019
-              "1525",  "%2C",    # Lewis East Sthelens 2020
-              "1045",  "%2C",    # Mount Adams 2016
-              "715",   "%2C",    # Wasco A 2015
-              "1253",  "%2C",   # Southwest State Lands 2017
-              "373",   "%2C",     # Wasco B 2015
-              "36",    "%2C",     # Speelyai 2015
-              "1075",  "%2C",     # Swwa Foothills 2017
-              "889",   "%2C"     # Columbia 2010 E
+   #         "1615", 
+   #          "%2C",    # East Cascades South 2020 DTM (not hillshade)
+   #         "1609", 
+   #          "%2C",     # East Cascades North 2020 DTM (not hillshade)
+   #         "1501", 
+   #          "%2C",      # King County East 2021 DTM (not hillshade)
+   #         "1603", 
+   #          "%2C",     # King County East 2021 DTM (not hillshade)
+   #         "1231" , 
+   #         "%2C"  ,     # Yakima Basin North 2018
+   #          "825",    
+   #          "%2C",     # Colockum 2014
+   #         "1463",    
+   #          "%2C",     # Manastash 2018
+   #          "733",      
+   #          "%2C",    # Yakima K2K 2014
+   #           "1555",     
+   #           "%2C",     # Cle Elum Forest Studies 2021
+   #           "40",
+   #           "%2C",     # Teanaway 2015
+   #           "45",
+   #           "%2C",     # Wenatchee 2009
+   #           "1265",
+   #           "%2C",     # Yakima Basin 2018
+   #           "1495",
+   #           "%2C",     # Paco Basin 2020
+   #           "877",
+   #           "%2C",     # Columbia 2010 B
+             "1439",  "%2C" #,     # Cascades South 3DEP 2019
+   #          "1525",  "%2C",     # Lewis East Sthelens 2020
+   #          "1045",  "%2C",     # Mount Adams 2016
+   #          "715",   "%2C",     # Wasco A 2015
+   #          "1253",  "%2C",     # Southwest State Lands 2017
+   #          "373",   "%2C",     # Wasco B 2015
+   #          "36",    "%2C",     # Speelyai 2015
+   #          "1075",  "%2C",     # Swwa Foothills 2017
+   #          "889",   "%2C",     # Columbia 2010 E
+   #          "1385",   "%2C"     # Southwest Wa Opsw 2019
 )
 
 # when we get an error, search for the summit on sotl.as, open the summit in caltopo, paste the coords into the lidar URL, select the summit and see what LIDAR dataset is available. 
@@ -435,7 +436,7 @@ library(leaflet)
 gjsf <- st_read("W7W_LC/input/W7W_LC.geojson")
 
 which_summit <- 
-  which(summit_geometry$summit == "W7W_LC_082")
+  which(summit_geometry$summit == "W7W_LC_153")
 
 which_summit_lng_lat <- 
 as.vector(st_coordinates(summit_geometry[which_summit, ])[1,1:2])
