@@ -435,7 +435,7 @@ library(leaflet)
 gjsf <- st_read("W7W_LC/input/W7W_LC.geojson")
 
 which_summit <- 
-  which(summit_geometry$summit == "W7W_LC_013")
+  which(summit_geometry$summit == "W7W_LC_082")
 
 which_summit_lng_lat <- 
 as.vector(st_coordinates(summit_geometry[which_summit, ])[1,1:2])
@@ -464,5 +464,6 @@ leaflet() %>%
 l # open the interactive map for panning and zooming over all the summits
 ```
 
-
+Need to revisit:
+- W7W_LC_056: E side
 
