@@ -143,7 +143,7 @@ Some manual handling is needed because some lidar data sets that cover the same 
 az_elev_m <- 25 # AZ is area -25m elevation from summit
 unlink(here::here("from_url_req/"), recursive = TRUE)
 
-for(i in 1:nrow(gjsf_elev)){
+for(i in 181:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
@@ -204,7 +204,12 @@ url <- paste0("https://lidarportal.dnr.wa.gov/download?geojson=%7B%22type%22%3A%
              "1075",  "%2C",     # Swwa Foothills 2017
              "889",   "%2C",     # Columbia 2010 E
              "1385",  "%2C",     # Southwest Wa Opsw 2019
-             "19",    "%2C"      # Klickitat 2015 
+             "19",    "%2C",      # Klickitat 2015 
+             "1069",  "%2C",       # North Puget 2017
+             "1118",  "%2C",       # North Cascades 2009
+             "22",    "%2C",       # North Puget USGS 2006
+             "43",    "%2C",       # Tulalip 2013
+             "303",   "%2C"       # Glacier Peak 2015
 )
 
 # when we get an error, search for the summit on sotl.as, open the summit in caltopo, paste the coords into the lidar URL, select the summit and see what LIDAR dataset is available. 
@@ -391,7 +396,7 @@ summit_geometry <-
   select(summit, geometry)
 ```
 
-Here are all the summits in W7W/KG and their activation zones as computed above (grey polygons), the red squares are my arbitrary buffer zones that I downloaded the LIDAR data for:
+Here are all the summits and their activation zones as computed above (grey polygons), the red squares are my arbitrary buffer zones that I downloaded the LIDAR data for:
 
 
 ```{r}

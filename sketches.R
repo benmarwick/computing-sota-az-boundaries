@@ -3,6 +3,21 @@ library(rvest)
 library(httr)
 library(tidyverse)
 
+# make a URL to see what the lidar coverage is like for a summit
+# open the URL in the clipboard to paste into the browser
+browseURL(
+paste0(
+  "https://lidarportal.dnr.wa.gov/#",
+  this_summit$y, 
+  ":",
+  this_summit$x,
+  ":13"
+))
+
+
+
+
+#------------------------------------------------------------------------------
 # get list of regions in the W7W association
 # via API
 sota_regions_w7w <- "https://api2.sota.org.uk/api/associations/w7w"
@@ -54,17 +69,18 @@ plot(m1) # hi res
 
 # here's another group of rasters with similar resolution
  m2 <- rast(the_raster_files[c(2)])
-# m2 <- sprc(the_raster_files[c(2,3)])
+# m2 <- sprc(the_raster_files[c(3,4)])
 # m2 <- terra::merge(m2, gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
 
 plot(m2) # low res
 
-# https://gis.stackexchange.com/a/423700
+# in case CRS are not the same
+crs(m1) <- crs(m2)
 
-  
- e <- exactextractr::exact_resample(m2, #. low res raster,
-                                    m1, #  high res raster
-                                    'mean')
+# https://gis.stackexchange.com/a/423700
+e <- exactextractr::exact_resample(m2, #. low res raster,
+                                   m1, #  high res raster
+                                  'mean')
 plot(e)
  
 m <- terra::merge(e,   # output from previous
