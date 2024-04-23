@@ -1,7 +1,5 @@
 
-library(rvest)
-library(httr)
-library(tidyverse)
+
 
 # make a URL to see what the lidar coverage is like for a summit
 # open the URL in the clipboard to paste into the browser
@@ -18,6 +16,11 @@ paste0(
 
 
 #------------------------------------------------------------------------------
+
+library(rvest)
+library(httr)
+library(tidyverse)
+
 # get list of regions in the W7W association
 # via API
 sota_regions_w7w <- "https://api2.sota.org.uk/api/associations/w7w"
@@ -61,16 +64,16 @@ region_summits %>%
 # with different resolutions
 
 # here's one group of rasters with similar resolution
- m1 <- rast(the_raster_files[c(1)])
-#m1 <- sprc(the_raster_files[c(1,2)])
+m1 <- rast(the_raster_files[c(1)])
+# m1 <- sprc(the_raster_files[c(1,2,3)])
 #m1 <- terra::merge(m1, gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
 
 plot(m1) # hi res
 
 # here's another group of rasters with similar resolution
- m2 <- rast(the_raster_files[c(2)])
-# m2 <- sprc(the_raster_files[c(3,4)])
-# m2 <- terra::merge(m2, gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
+# m2 <- rast(the_raster_files[c(2)])
+m2 <- sprc(the_raster_files[c(2:3)])
+m2 <- terra::merge(m2, gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
 
 plot(m2) # low res
 
@@ -87,6 +90,69 @@ m <- terra::merge(e,   # output from previous
                   m1)  # high res
  
 plot(m)
+
+#------------------------------------------------------------------------------
+# how to automate this merging of rasters of different resolutions?
+
+# import into our R session, mostly there are multiple tif 
+# files, but sometimes just one
+if(length(the_raster_files) == 1){
+  
+  # just one raster
+  m <- rast(the_raster_files)
+  
+} else {
+
+  # more than one, and with different resolutions
+  
+rasters_res_tbl <- 
+tibble(
+  file = the_raster_files,
+  res = map_dbl(the_raster_files, ~res(rast(.x))[[1]])
+) %>% 
+  # make sure hi res is first
+  arrange(desc(res))
+
+res_n <- unique(rasters_res_tbl$res)
+
+# create a list of rasters where we've merged together files with the same
+# resolution, if there are multiples
+list_of_rasters <- vector("list", length = length(res_n))
+
+for(i in 1:length(res_n)){
+  
+  the_res <- res_n[i]
+  
+  if(sum(rasters_res_tbl$res == the_res) == 1){
+    # if just one raster of that resolution
+    list_of_rasters[[i]] <- rast(rasters_res_tbl$file[ rasters_res_tbl$res == the_res ])
+  } else {
+    # if multiple raster files of that resolution
+    list_of_rasters[[i]]  <-  sprc(rasters_res_tbl$file[ rasters_res_tbl$res == the_res ])
+    list_of_rasters[[i]]  <- terra::merge(list_of_rasters[[i]], gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
+  }
+  
+}
+
+# downsample the hi-res raster to match the low-res raster, assuming we
+# have only two different resolutions of rasters here, and so only a list o
+# of two items, hopefully this is true!
+
+# in case CRS are not the same
+  crs(list_of_rasters[[1]]) <-  crs(list_of_rasters[[2]])
+  
+  # https://gis.stackexchange.com/a/423700
+  e <- exactextractr::exact_resample(list_of_rasters[[2]], #. low res raster,
+                                     list_of_rasters[[1]], #  high res raster
+                                     'mean')
+  
+  m <- terra::merge(e,   # output from previous
+                    list_of_rasters[[1]])  # high res
+  
+}
+  
+#---------------------------------------------------------------------------
+
 
 
 
