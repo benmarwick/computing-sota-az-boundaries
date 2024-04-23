@@ -18,6 +18,39 @@ knitr::opts_chunk$set(
 
 # Computing Activation Zone Boundaries for [SOTA](https://www.sota.org.uk/) Summits in W7W-SK 
 
+LIDAR coverage is patchy for the Skagit region (SK), with no data for these summits: 
+
+- SK-002
+- SK-006 - SK-012
+- SK-014 - SK-018
+- SK-021
+- SK-023 - SK-024
+- SK-027 - SK-028
+- SK-030 - SK-031
+- SK-033 
+- SK-038 - SK-040
+- SK-042 - SK-045
+- SK-047 - SK-050
+- SK-052 - SK-053
+- SK-055
+- SK-057
+- SK-059
+- SK-063 - SK-064
+- SK-068 - SK-074
+- SK-076
+- SK-078 - SK-081
+- SK-083 - SK-084
+- SK-086 - SK-087
+- SK-089 - SK-091
+- SK-099
+- SK-104
+- SK-110 - SK-112
+- SK-121 - SK-122
+- SK-126
+- SK-174
+- SK-180
+- SK-181
+
 ### Prepare the summit locations and bounding boxes
 
 Let's load the libraries we'll need
@@ -429,10 +462,8 @@ This code block makes an interactive map of the summits and activation zones.
 ```{r}
 library(leaflet)
 
-gjsf <- st_read("W7W_SK/input/W7W_SK.geojson")
-
 which_summit <- 
-  which(summit_geometry$summit == "W7W_SK_001")
+  which(summit_geometry$summit == "W7W_SK_181")
 
 which_summit_lng_lat <- 
 as.vector(st_coordinates(summit_geometry[which_summit, ])[1,1:2])
@@ -444,23 +475,25 @@ leaflet() %>%
               color = "red", 
               weight = 1) %>% 
   addCircleMarkers(data = gjsf %>% 
-                     mutate(id = str_replace_all(id, "/|-", "_")) %>% 
-                     filter(id %in% summit_geometry$summit[which_summit] ),
+                     mutate(summitCode = str_replace_all(summitCode,
+                                                         "/|-", "_")) %>% 
+                     filter(summitCode %in% summit_geometry$summit[which_summit] ),
                    radius = 1,
                    weight = 1,
-                   label = ~id,
+                   label = ~summitCode,
                    labelOptions = labelOptions(noHide = T, 
                                                direction = "top",
                                                offset = c(0, -15))) %>% 
   setView(lng = which_summit_lng_lat[1],
           lat = which_summit_lng_lat[2],  
-           zoom = 17)  %>%
+           zoom = 16)  %>%
   addScaleBar()
 
 
 l # open the interactive map for panning and zooming over all the summits
 ```
 
-No lidar data for 
--...
+
+
+
 
