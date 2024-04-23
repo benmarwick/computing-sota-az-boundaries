@@ -507,7 +507,7 @@ This code block makes an interactive map of the summits and activation zones.
 library(leaflet)
 
 which_summit <- 
-  which(summit_geometry$summit == "W7W_RS_001")
+  which(summit_geometry$summit == "W7W_RS_022")
 
 which_summit_lng_lat <- 
 as.vector(st_coordinates(summit_geometry[which_summit, ])[1,1:2])
