@@ -147,7 +147,8 @@ az_elev_m <- 25 # AZ is area -25m elevation from summit
 unlink(paste0(this_dir, "/from_url_req/"),
        recursive = TRUE)
 
-for(i in 92:nrow(gjsf_elev)){
+# n= 347
+for(i in 172:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
@@ -214,7 +215,13 @@ url <- paste0("https://lidarportal.dnr.wa.gov/download?geojson=%7B%22type%22%3A%
              "1173",    "%2C",       # Wenatchee Upper 2017
              "1451",    "%2C",       # Methow Basin 2018
              "703",    "%2C",       # Okanogan 2015
-             "697",    "%2C"       # Loomis Loup Loup 2016
+             "697",    "%2C",       # Loomis Loup Loup 2016
+             "661",    "%2C",       # Baker 2015
+             "755",    "%2C",       # Colville 2014
+             "6",    "%2C",       # Colville 2008
+             "679",    "%2C",       # Colville 2012
+             "685",    "%2C",       # Colville 2015
+             "1343",    "%2C"       # Ne Wa 2017
 ) 
 
 # when we get an error, search for the summit on sotl.as, open the summit in caltopo, paste the coords into the lidar URL, select the summit and see what LIDAR dataset is available. 
@@ -448,6 +455,7 @@ geojsonio::geojson_write(poly_with_summit,
 
 
 }
+
 ```
 
 After running the code block above we now have one GeoJSON file per summit with a polygon defining its activation zone in our `/output` directory.
@@ -478,34 +486,6 @@ summit_geometry <-
   bind_rows(az_files, .id = "summit") %>% 
   select(summit, geometry)
 ```
-
-Here are all the summits and their activation zones as computed above (grey polygons), the red squares are my arbitrary buffer zones that I downloaded the LIDAR data for:
-
-
-```{r}
-# take a look at the summits and AZs
-  ggplot() +
-    geom_sf(data = summit_geometry) + 
-    geom_sf(data = gjsf_elev_buf_sq_df,
-            colour ="red",
-            fill = NA,
-            size = 0.1) +
-    geom_text_repel(data = gjsf_elev,
-                    aes( x, y,
-                         label = name),
-                    bg.color = "white",
-                    bg.r = 0.1,
-                    size = 1.5,
-                    segment.colour= "grey") +
-    annotation_scale(location = "bl", 
-                     width_hint = 0.5,
-                     pad_y = unit(0.1, "cm"),
-                     pad_x = unit(0.5, "cm"),
-                    style =  "ticks") +
-    coord_sf() +
-    theme_minimal(base_size = 8)
-```
-
 
 This code block makes an interactive map of the summits and activation zones. 
 
