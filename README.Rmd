@@ -43,18 +43,14 @@ The goal of this repository is to generate polygons that indicate the [activatio
 
 The goal of these project is generate activation zone polygons as GeoJSON files that can be integrated into the sotl.as map. This is inspired by the work done for HB/HB0 and OE, where operators can view the activation zone polygon directly in the sotl.as map  Currently this project only does summits in the W7W area. Here I use the R programming language to access the Washington State's Department of Natural Resources public LIDAR portal: https://lidarportal.dnr.wa.gov/ For each SOTA summit I download a small raster file of elevation data for each summit, and compute the activation zone polygon and save it to a GeoJSON file. Please inspect the R Markdown files in this repository for more details of the calculations.
 
-Currently this repository has GeoJSON files for the following regions in the W7W association: 
+Currently this repository has GeoJSON files for activation zones in the following regions in the W7W association: 
 
 - KG (King County): currently visible on [sotl.as](https://sotl.as/summits/W7W/KG)
-- CW (Central Washington): not yet on [sotl.as](https://sotl.as/)
-
-
-<!-- 
-- LC
--->
-
-
-
+- CW (Central Washington): not yet on [sotl.as](https://sotl.as/W7W/CW)
+- LC (Lower Columbia): not yet on [sotl.as](https://sotl.as/W7W/LC)
+- RS (Rainer Salish): not yet on [sotl.as](https://sotl.as/W7W/RS)
+- SK (Skagit): not yet on [sotl.as](https://sotl.as/W7W/SK)
+- CH (Chelan): not yet on [sotl.as](https://sotl.as/W7W/CH)
 
 
 ### Licenses

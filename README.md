@@ -69,16 +69,16 @@ each summit, and compute the activation zone polygon and save it to a
 GeoJSON file. Please inspect the R Markdown files in this repository for
 more details of the calculations.
 
-Currently this repository has GeoJSON files for the following regions in
-the W7W association:
+Currently this repository has GeoJSON files for activation zones in the
+following regions in the W7W association:
 
-- KG (King County): also currently visible on
-  [sotl.as](https://sotl.as/)
-- CW (Central Washington): not yet on [sotl.as](https://sotl.as/)
-
-<!-- 
-- LC
--->
+- KG (King County): currently visible on
+  [sotl.as](https://sotl.as/summits/W7W/KG)
+- CW (Central Washington): not yet on [sotl.as](https://sotl.as/W7W/CW)
+- LC (Lower Columbia): not yet on [sotl.as](https://sotl.as/W7W/LC)
+- RS (Rainer Salish): not yet on [sotl.as](https://sotl.as/W7W/RS)
+- SK (Skagit): not yet on [sotl.as](https://sotl.as/W7W/SK)
+- CH (Chelan): not yet on [sotl.as](https://sotl.as/W7W/CH)
 
 ### Licenses
 

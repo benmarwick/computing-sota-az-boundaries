@@ -80,7 +80,7 @@ bSquare <- function(x, a) {
 }
 
 # get a buffer zone of a certain area
-buffer_side_length <- 5e6 # 100 is a 10x10, this is the value we manually adjust to manage buffer area, to capture the biggest AZ
+buffer_side_length <- 1e6 # 100 is a 10x10, this is the value we manually adjust to manage buffer area, to capture the biggest AZ
 gjsf_elev_buf <- 
   bSquare(gjsf_elev,
           buffer_side_length)
@@ -146,7 +146,7 @@ This chunk of code takes several hours to run and downloads raster tiles on each
 az_elev_m <- 25 # AZ is area -25m elevation from summit
 unlink(here::here("from_url_req/"), recursive = TRUE)
 
-for(i in 26:nrow(gjsf_elev)){
+for(i in 138:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
@@ -206,7 +206,8 @@ url <- paste0("https://lidarportal.dnr.wa.gov/download?geojson=%7B%22type%22%3A%
              "1259",   "%2C",      # Kitsap County Opsw 
              "30",    "%2C",       # San Juan 2013 
              "16",    "%2C",       # Island 2014
-             "1409",    "%2C"       # Entiat Upper 2018
+             "1409",    "%2C",       # Entiat Upper 2018
+             "1349",    "%2C"       # Chelan 2018
 ) 
 
 # when we get an error, search for the summit on sotl.as, open the summit in caltopo, paste the coords into the lidar URL, select the summit and see what LIDAR dataset is available. 
@@ -505,7 +506,7 @@ This code block makes an interactive map of the summits and activation zones.
 library(leaflet)
 
 which_summit <- 
-  which(summit_geometry$summit == "W7W_CH_001")
+  which(summit_geometry$summit == "W7W_CH_073")
 
 which_summit_lng_lat <- 
 as.vector(st_coordinates(summit_geometry[which_summit, ])[1,1:2])
