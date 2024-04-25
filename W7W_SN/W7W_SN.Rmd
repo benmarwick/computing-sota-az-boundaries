@@ -16,9 +16,9 @@ knitr::opts_chunk$set(
   fig.width=7)
 ```
 
-# Computing Activation Zone Boundaries for [SOTA](https://www.sota.org.uk/) Summits in W7W-WH 
+# Computing Activation Zone Boundaries for [SOTA](https://www.sota.org.uk/) Summits in W7W-SN
 
-Whatcom region (WH)
+Snohomish SN
 
 
 ### Prepare the summit locations and bounding boxes
@@ -42,8 +42,11 @@ Import a GeoJSON file containing the locations and elevations of SOTA summits. I
 ```{r}
 # get all summits via the SOTA API
 
+this_region <- "SN"
+
 library(rvest)
-gjsf <-  httr::GET("https://api2.sota.org.uk/api/regions/W7W/WH") %>% 
+gjsf <-  httr::GET(paste0("https://api2.sota.org.uk/api/regions/W7W/",
+                          this_region)) %>% 
             httr::content(., as = "text")%>% 
             jsonlite::fromJSON() %>% 
             purrr::pluck("summits") %>% 
@@ -52,7 +55,7 @@ gjsf <-  httr::GET("https://api2.sota.org.uk/api/regions/W7W/WH") %>%
                        "gridRef2"),
            crs = st_crs(4326))
 
-this_dir <- here::here("W7W_WH")
+this_dir <- here::here(paste0("W7W_", this_region))
 ```
 
 Prepare to query the WA DNR LIDAR imagery. This gives us every layer currently available, so we don't need to manually check for coverage. 
@@ -162,8 +165,8 @@ az_elev_m <- 25 # AZ is area -25m elevation from summit
 unlink(paste0(this_dir, "/from_url_req/"),
        recursive = TRUE)
 
-# n = 207
-for(i in 105:nrow(gjsf_elev)){
+# n = 184
+for(i in 1:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]

@@ -62,7 +62,7 @@ And these are in the queue to work on next:
 NO	WA-Northern Olympics	260
 WH	WA-Whatcom	207
 SN	WA-Snohomish	184
-PL	WA-Pacific-Lewis	168
+PL	WA-Pacific-Lewis	168 <- latest
 ST	WA-Stevens	152
 SO	WA-Southern Olympics	122
 MC	WA-Middle Columbia	95
