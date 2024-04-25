@@ -16,9 +16,9 @@ knitr::opts_chunk$set(
   fig.width=7)
 ```
 
-# Computing Activation Zone Boundaries for [SOTA](https://www.sota.org.uk/) Summits in W7W-OK 
+# Computing Activation Zone Boundaries for [SOTA](https://www.sota.org.uk/) Summits in W7W-WH 
 
-Okenagen region (OK)
+Whatcom region (WH)
 
 
 ### Prepare the summit locations and bounding boxes
@@ -53,6 +53,21 @@ gjsf <-  httr::GET("https://api2.sota.org.uk/api/regions/W7W/WH") %>%
            crs = st_crs(4326))
 
 this_dir <- here::here("W7W_WH")
+```
+
+Prepare to query the WA DNR LIDAR imagery. This gives us every layer currently available, so we don't need to manually check for coverage. 
+
+```{r}
+# get IDs for all the various LIDAR datasets from the WA DNR
+x <-  read_file ("lidar-ids.txt")
+
+lidar_ids <- 
+str_remove_all(x, "h") %>% 
+  str_split("%2C") %>% 
+  unlist() %>% 
+  parse_number() %>% 
+  -1 %>% # these are the IDs for wadnr_hillshade, looks like the DTM is simply 1 less
+  str_c( collapse = "%2C") 
 ```
 
 Extract the location coordinates into columns so we can use them later, and create a column for elevation in meters because our raster data is in meters.
@@ -147,7 +162,8 @@ az_elev_m <- 25 # AZ is area -25m elevation from summit
 unlink(paste0(this_dir, "/from_url_req/"),
        recursive = TRUE)
 
-for(i in 13:nrow(gjsf_elev)){
+# n = 207
+for(i in 1:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
@@ -170,52 +186,7 @@ url <- paste0("https://lidarportal.dnr.wa.gov/download?geojson=%7B%22type%22%3A%
               bbx_m[4,1], "%2C", bbx_m[4,2], "%5D%2C%5B",
               bbx_m[5,1], "%2C", bbx_m[5,2], "%5D%5D%5D%7D",
               "&ids=",
-            "1615",   "%2C",    # East Cascades South 2020 DTM (not hillshade)
-            "1609",   "%2C",     # East Cascades North 2020 DTM (not hillshade)
-            "1501",    "%2C",      # King County East 2021 DTM (not hillshade)
-            "1603",    "%2C",     # King County East 2021 DTM (not hillshade)
-            "1231" ,    "%2C"  ,     # Yakima Basin North 2018
-             "825",     "%2C",     # Colockum 2014
-            "1463",    "%2C",     # Manastash 2018
-             "733",     "%2C",    # Yakima K2K 2014
-              "1555",      "%2C",     # Cle Elum Forest Studies 2021
-              "40",     "%2C",     # Teanaway 2015
-              "45",     "%2C",     # Wenatchee 2009
-              "1265",    "%2C",     # Yakima Basin 2018
-              "1495",    "%2C",     # Paco Basin 2020
-              "877",     "%2C",     # Columbia 2010 B
-            "1439",   "%2C" ,     # Cascades South 3DEP 2019
-             "1525",  "%2C",     # Lewis East Sthelens 2020
-             "1045",  "%2C",     # Mount Adams 2016
-             "715",   "%2C",     # Wasco A 2015
-             "1253",  "%2C",     # Southwest State Lands 2017
-             "373",   "%2C",     # Wasco B 2015
-             "36",    "%2C",     # Speelyai 2015
-             "1075",  "%2C",     # Swwa Foothills 2017
-             "889",   "%2C",     # Columbia 2010 E
-             "1385",  "%2C",     # Southwest Wa Opsw 2019
-             "19",    "%2C",      # Klickitat 2015 
-             "1069",  "%2C",       # North Puget 2017
-             "1118",  "%2C",       # North Cascades 2009
-             "22",    "%2C",       # North Puget USGS 2006
-             "43",    "%2C",       # Tulalip 2013
-             "303",   "%2C",       # Glacier Peak 2015
-             "810",   "%2C",       # Rainier 2007
-             "24",   "%2C",        # Pierce 2011
-             "777",   "%2C",      # San Juan 2009
-             "15",   "%2C",       # Hood Canal 2015
-             "1259",   "%2C",      # Kitsap County Opsw 
-             "30",    "%2C",       # San Juan 2013 
-             "16",    "%2C",       # Island 2014
-             "1409",    "%2C",       # Entiat Upper 2018
-             "1349",    "%2C",       # Chelan 2018
-             "9",      "%2C",       # Entiat 2013 
-             "667",    "%2C",       # Chelan 2015 
-             "1173",    "%2C",       # Wenatchee Upper 2017
-             "1451",    "%2C",       # Methow Basin 2018
-             "703",    "%2C",       # Okanogan 2015
-             "697",    "%2C",       # Loomis Loup Loup 2016
-             "661",    "%2C"       # Baker 2015
+            lidar_ids
 ) 
 
 # when we get an error, search for the summit on sotl.as, open the summit in caltopo, paste the coords into the lidar URL, select the summit and see what LIDAR dataset is available. 
@@ -225,7 +196,16 @@ print(paste0("Downloading LIDAR data for ", this_summit$summitCode,
 
 # send our query to the LIDAR portal, unzip the response and import the tif file
 req <- request(url)
-resp <- req %>% req_perform()
+
+# move to the next item in the loop if we get an error contacting the LIDAR server
+skip_to_next <- FALSE
+tryCatch(
+  resp <- req |> req_perform(),
+    error = function(e) { print(paste0("Server Error for ", 
+                                       this_summit$summitCode)); 
+      skip_to_next <<- TRUE})
+if(skip_to_next) { next } 
+
 v = resp_body_raw(resp)
 rm(resp)
 writeBin(v, paste0(this_dir, "/data.zip"))
@@ -423,11 +403,11 @@ poly_with_summit <-
 #   geom_sf(data = poly_with_summit) +
 #   geom_sf(data = this_summit_nad83) +
 #   coord_sf() +
-#   annotation_scale(location = "bl", 
+#   annotation_scale(location = "bl",
 #                    width_hint = 0.5,
 #                    pad_y = unit(0.1, "cm"),
 #                    pad_x = unit(0.5, "cm"),
-#                    style =  "ticks")  
+#                    style =  "ticks")
   
 
 poly_with_summit <- st_as_sf(st_transform(poly_with_summit, st_crs(this_summit)))
@@ -439,7 +419,8 @@ print(paste0("Saving GeoJSON file for ", this_summit$summitCode,
              "..."))
 
 # write AZ polygon to a GeoJSON file
-file_name <- paste0("W7W_OK/output/", str_replace_all(this_summit$summitCode, "/|-", "_"), 
+file_name <- paste0(paste0(this_dir, "/output"), 
+                    str_replace_all(this_summit$summitCode, "/|-", "_"), 
                     ".geojson")
 
 # export AZ polygon as a GeoJSON file
@@ -449,6 +430,7 @@ geojsonio::geojson_write(poly_with_summit,
 
 
 }
+
 ```
 
 After running the code block above we now have one GeoJSON file per summit with a polygon defining its activation zone in our `/output` directory.
@@ -480,41 +462,13 @@ summit_geometry <-
   select(summit, geometry)
 ```
 
-Here are all the summits and their activation zones as computed above (grey polygons), the red squares are my arbitrary buffer zones that I downloaded the LIDAR data for:
-
-
-```{r}
-# take a look at the summits and AZs
-  ggplot() +
-    geom_sf(data = summit_geometry) + 
-    geom_sf(data = gjsf_elev_buf_sq_df,
-            colour ="red",
-            fill = NA,
-            size = 0.1) +
-    geom_text_repel(data = gjsf_elev,
-                    aes( x, y,
-                         label = name),
-                    bg.color = "white",
-                    bg.r = 0.1,
-                    size = 1.5,
-                    segment.colour= "grey") +
-    annotation_scale(location = "bl", 
-                     width_hint = 0.5,
-                     pad_y = unit(0.1, "cm"),
-                     pad_x = unit(0.5, "cm"),
-                    style =  "ticks") +
-    coord_sf() +
-    theme_minimal(base_size = 8)
-```
-
-
 This code block makes an interactive map of the summits and activation zones. 
 
 ```{r}
 library(leaflet)
 
 which_summit <- 
-  which(summit_geometry$summit == "W7W_OK_001")
+  which(summit_geometry$summit == "W7W_WH_001")
 
 which_summit_lng_lat <- 
 as.vector(st_coordinates(summit_geometry[which_summit, ])[1,1:2])

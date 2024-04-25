@@ -12,7 +12,20 @@ paste0(
   ":13"
 ))
 
+#------------------------------------------------------------------------------
+# from https://www.jakelow.com/blog/using-wa-dnr-lidar-imagery-in-id
+# get those IDs with this in the terminanal
+# $ curl -s --compressed 'https://lidarportal.dnr.wa.gov/arcgis/services/lidar/wadnr_hillshade/MapServer/WmsServer?service=WMS&request=GetCapabilities' | xidel -s - -e '//Layer/Name' | paste -sd "," - | sed 's/,/%2C/g';2D
 
+x <-  read_file ("lidar-ids.txt")
+
+lidar_ids <- 
+str_remove_all(x, "h") %>% 
+  str_split("%2C") %>% 
+  unlist() %>% 
+  parse_number() %>% 
+  -1 %>% 
+  str_c( collapse = "%2C") 
 
 
 #------------------------------------------------------------------------------
