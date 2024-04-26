@@ -166,7 +166,7 @@ unlink(paste0(this_dir, "/from_url_req/"),
        recursive = TRUE)
 
 # n = 184
-for(i in 1:nrow(gjsf_elev)){
+for(i in 130:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
@@ -218,7 +218,7 @@ unzip(paste0(this_dir, "/data.zip"),
 unlink(paste0(this_dir, "/data.zip"))
 the_raster_files <-
   list.files(path = paste0(this_dir, "/from_url_req/"),
-             pattern = "*.tif",
+             pattern = ".*dtm.*.tif",
              full.names = TRUE,
              ignore.case = TRUE,
              recursive = TRUE)
@@ -471,7 +471,7 @@ This code block makes an interactive map of the summits and activation zones.
 library(leaflet)
 
 which_summit <- 
-  which(summit_geometry$summit == "W7W_WH_001")
+  which(summit_geometry$summit == "W7W_SN_001")
 
 which_summit_lng_lat <- 
 as.vector(st_coordinates(summit_geometry[which_summit, ])[1,1:2])
@@ -501,7 +501,7 @@ leaflet() %>%
 l # open the interactive map for panning and zooming over all the summits
 ```
 
-
+SN-133 what's going on here?
 
 
 

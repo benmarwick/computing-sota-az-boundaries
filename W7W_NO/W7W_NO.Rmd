@@ -166,7 +166,7 @@ unlink(paste0(this_dir, "/from_url_req/"),
        recursive = TRUE)
 
 # n = 260
-for(i in 1:nrow(gjsf_elev)){
+for(i in 170:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
@@ -218,7 +218,7 @@ unzip(paste0(this_dir, "/data.zip"),
 unlink(paste0(this_dir, "/data.zip"))
 the_raster_files <-
   list.files(path = paste0(this_dir, "/from_url_req/"),
-             pattern = "*.tif",
+             pattern = ".*dtm.*.tif",
              full.names = TRUE,
              ignore.case = TRUE,
              recursive = TRUE)

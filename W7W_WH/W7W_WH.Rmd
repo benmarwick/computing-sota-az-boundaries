@@ -163,7 +163,7 @@ unlink(paste0(this_dir, "/from_url_req/"),
        recursive = TRUE)
 
 # n = 207
-for(i in 105:nrow(gjsf_elev)){
+for(i in 195:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
@@ -468,7 +468,7 @@ This code block makes an interactive map of the summits and activation zones.
 library(leaflet)
 
 which_summit <- 
-  which(summit_geometry$summit == "W7W_WH_001")
+  which(summit_geometry$summit == "W7W_WH_069")
 
 which_summit_lng_lat <- 
 as.vector(st_coordinates(summit_geometry[which_summit, ])[1,1:2])
@@ -498,7 +498,9 @@ leaflet() %>%
 l # open the interactive map for panning and zooming over all the summits
 ```
 
-
-
+WH-001 w edge
+WH-030 too big
+WH-045 too big
+WH-046 too many
 
 

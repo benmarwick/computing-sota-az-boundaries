@@ -163,7 +163,7 @@ unlink(paste0(this_dir, "/from_url_req/"),
        recursive = TRUE)
 
 # n= 347
-for(i in 196:nrow(gjsf_elev)){
+for(i in 305:nrow(gjsf_elev)){
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
@@ -215,7 +215,7 @@ unzip(paste0(this_dir, "/data.zip"),
 unlink(paste0(this_dir, "/data.zip"))
 the_raster_files <-
   list.files(path = paste0(this_dir, "/from_url_req/"),
-             pattern = "*.tif",
+              pattern = ".*dtm.*.tif",
              full.names = TRUE,
              ignore.case = TRUE,
              recursive = TRUE)
@@ -419,7 +419,7 @@ print(paste0("Saving GeoJSON file for ", this_summit$summitCode,
              "..."))
 
 # write AZ polygon to a GeoJSON file
-file_name <- paste0(paste0(this_dir, "/output/",
+file_name <- paste0(paste0(this_dir, "/output/"),
                     str_replace_all(this_summit$summitCode, "/|-", "_"), 
                     ".geojson")
 
