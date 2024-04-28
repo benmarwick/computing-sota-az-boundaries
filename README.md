@@ -13,9 +13,10 @@
 
 The goal of this repository is to generate polygons that indicate the
 [activation zones](https://www.sota.org.uk/Blog/2017/07/08/In-The-Zone)
-for [SOTA](https://www.sota.org.uk/) summits in the W7W-KG area. Here is
-how the [SOTA FAQ](https://www.sota.org.uk/Joining-In/FAQs) defines the
-activation zone:
+for [SOTA](https://www.sota.org.uk/) summits in the W7W area (Washington
+State, USA). Here is how the [SOTA
+FAQ](https://www.sota.org.uk/Joining-In/FAQs) defines the activation
+zone:
 
 > Q. What is the Activation Zone?
 
@@ -58,8 +59,8 @@ activation zone:
 ### This project
 
 The goal of these project is generate activation zone polygons as
-GeoJSON files that can be integrated into the sotl.as map. This is
-inspired by the work done for HB/HB0 and OE, where operators can view
+GeoJSON files that can be integrated into the sotl.as map for W7W. This
+is inspired by the work done for HB/HB0 and OE, where operators can view
 the activation zone polygon directly in the sotl.as map Currently this
 project only does summits in the W7W area. Here I use the R programming
 language to access the Washington State’s Department of Natural
@@ -70,15 +71,35 @@ GeoJSON file. Please inspect the R Markdown files in this repository for
 more details of the calculations.
 
 Currently this repository has GeoJSON files for activation zones in the
-following regions in the W7W association:
+following regions in the W7W association and are visible on
+[sotl.as](https://sotl.as):
 
 - KG (King County): currently visible on
   [sotl.as](https://sotl.as/summits/W7W/KG)
-- CW (Central Washington): not yet on [sotl.as](https://sotl.as/W7W/CW)
-- LC (Lower Columbia): not yet on [sotl.as](https://sotl.as/W7W/LC)
-- RS (Rainer Salish): not yet on [sotl.as](https://sotl.as/W7W/RS)
-- SK (Skagit): not yet on [sotl.as](https://sotl.as/W7W/SK)
-- CH (Chelan): not yet on [sotl.as](https://sotl.as/W7W/CH)
+
+And we have generated GeoJSON files for activation zones for these
+regions but we haven’t yet sent to sotl.as:
+
+- CW (Central Washington)
+- LC (Lower Columbia)
+- RS (Rainer Salish)
+- SK (Skagit)
+- CH (Chelan)
+- FR (Ferry)
+- SN (Snohomish)
+
+I’m still working on these:
+
+- OK (Okenagen) do QC
+- NO (Northern Olympics) do QC
+- WH (Whatcom) do QC
+- SN (Snohomish) do QC
+- PL (Pacific-Lewis) not finished yet
+
+And these are in the queue to work on next:
+
+ST WA-Stevens 152 SO WA-Southern Olympics 122 MC WA-Middle Columbia 95
+PO WA-Pend Oreille 82 WE WA-Washington East
 
 ### Licenses
 

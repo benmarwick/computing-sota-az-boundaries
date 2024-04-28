@@ -154,31 +154,7 @@ Here is a loop that takes each summit and its bounding box and:
 -   then drop polygons that don't contain the summit point, or are with 20 m of it (since a few summits are outside of their activation zone)
 -   then write the polygon of the activation zone to a GeoJSON file
 
-This chunk of code takes several hours to run and downloads raster tiles on each iteration of the loop. 
-
-SN-133 what's going on here? -> fixed
-SN-028 too many polys -> fixed
-SN-051 too big -> fixed
-SN-076 too many polys -> wont fix, no lidar data
-SN-078 too big -> fixed
-SN-087 too big -> wont fix, no lidar data
-SN-094 too big -> fixed
-SN-095 too big -> wont fix, no lidar data
-SN-113 too big  -> fixed
-SN-119 too many poly  -> fixed
-SN-123 too many poly -> fixed
-SN-125 too big  -> fixed
-SN-137 too big -> fixed
-SN-139 too big -> fixed
-SN-143 too big -> fixed
-SN-146 too big -> fixed
-SN-157 too big -> fixed
-SN-173 SE cnr -> fixed
-SN-178 SE cnr -> fixed
-SN-183 too big -> fixed
-SN-185 too big -> fixed
-
-if not in poly, find nearest single poly
+This chunk of code takes several hours to run and downloads raster tiles on each iteration of the loop.
 
 
 ```{r, results='hide', eval=FALSE}

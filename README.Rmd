@@ -49,12 +49,13 @@ Currently this repository has GeoJSON files for activation zones in the followin
 
 And we have generated GeoJSON files for activation zones for these regions but we haven't yet sent to sotl.as:
 
-- CW (Central Washington): not yet on [sotl.as](https://sotl.as/W7W/CW)
-- LC (Lower Columbia): not yet on [sotl.as](https://sotl.as/W7W/LC)
-- RS (Rainer Salish): not yet on [sotl.as](https://sotl.as/W7W/RS)
-- SK (Skagit): not yet on [sotl.as](https://sotl.as/W7W/SK)
-- CH (Chelan): not yet on [sotl.as](https://sotl.as/W7W/CH)
-- FR (Ferry): not yet on [sotl.as](https://sotl.as/W7W/CH)
+- CW (Central Washington) 
+- LC (Lower Columbia)
+- RS (Rainer Salish)
+- SK (Skagit)
+- CH (Chelan)
+- FR (Ferry)
+- SN (Snohomish)
 
 I'm still working on these: 
 
@@ -62,7 +63,7 @@ I'm still working on these:
 - NO (Northern Olympics) do QC
 - WH (Whatcom) do QC
 - SN (Snohomish) do QC
-- PL (Pacific-Lewis)not finished yet
+- PL (Pacific-Lewis) not finished yet
 
 And these are in the queue to work on next:
 

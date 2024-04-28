@@ -165,6 +165,8 @@ unlink(paste0(this_dir, "/from_url_req/"),
 # n= 347
 for(i in 305:nrow(gjsf_elev)){
   
+  #  i <- which(gjsf_elev$summitCode == "W7W/OK-185")
+  
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
   
@@ -462,13 +464,14 @@ summit_geometry <-
   select(summit, geometry)
 ```
 
+
 This code block makes an interactive map of the summits and activation zones. 
 
 ```{r}
 library(leaflet)
 
 which_summit <- 
-  which(summit_geometry$summit == "W7W_OK_001")
+  which(summit_geometry$summit == "W7W_OK_345")
 
 which_summit_lng_lat <- 
 as.vector(st_coordinates(summit_geometry[which_summit, ])[1,1:2])
@@ -498,7 +501,22 @@ leaflet() %>%
 l # open the interactive map for panning and zooming over all the summits
 ```
 
+Problems
 
+OK_108 - w edge
+OK_117 - w edge
+OK_146 - s edge
+OK_193 - e edge
+OK_199 - w edge
+OK_228 - e edge
+OK_238 - s edge
+OK_263 - w edge
+OK_265 - nw cnr
+OK_275 - n edge
+OK_293 - n edge
+OK_296 - n edge
+OK_320 - ns edges
+OK_336 - w edge
 
 
 
