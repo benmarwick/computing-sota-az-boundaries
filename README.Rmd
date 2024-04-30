@@ -62,16 +62,15 @@ I'm still working on these:
 - OK (Okenagen) do QC
 - NO (Northern Olympics) do QC
 - WH (Whatcom) do QC
-- SN (Snohomish) do QC
 - PL (Pacific-Lewis) not finished yet
 
 And these are in the queue to work on next:
 
-ST	WA-Stevens	152
-SO	WA-Southern Olympics	122
-MC	WA-Middle Columbia	95
-PO	WA-Pend Oreille	82
-WE	WA-Washington East
+- ST	WA-Stevens	152.   
+- SO	WA-Southern Olympics	122.   
+- MC	WA-Middle Columbia	95.   
+- PO	WA-Pend Oreille	82    
+- WE	WA-Washington East    
 
 
 ### Licenses

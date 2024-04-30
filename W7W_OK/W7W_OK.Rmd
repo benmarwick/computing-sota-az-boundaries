@@ -95,7 +95,7 @@ bSquare <- function(x, a) {
 }
 
 # get a buffer zone of a certain area
-buffer_side_length <- 1e6 # 100 is a 10x10, this is the value we manually adjust to manage buffer area, to capture the biggest AZ
+buffer_side_length <- 1e7 # 100 is a 10x10, this is the value we manually adjust to manage buffer area, to capture the biggest AZ
 gjsf_elev_buf <- 
   bSquare(gjsf_elev,
           buffer_side_length)
@@ -154,6 +154,52 @@ Here is a loop that takes each summit and its bounding box and:
 This chunk of code takes several hours to run and downloads raster tiles on each iteration of the loop. 
 
 
+Problems
+
+OK_108 - w edge - no lidar data
+OK_117 - w edge - fixed
+OK_146 - s edge - fixed
+OK_193 - e edge - no lidar data
+OK_199 - w edge - no lidar data
+OK_228 - e edge - no lidar data
+OK_238 - s edge - no lidar data
+OK_263 - w edge - no lidar data
+OK_265 - nw cnr - fixed
+OK_275 - n edge - fixed
+OK_293 - n edge - no lidar data
+OK_296 - n edge - fixed
+OK_320 - ns edges - fixed
+OK_336 - w edge - no lidar data
+
+check again
+
+```{r}
+x <- c(192,
+202,
+208,
+217,
+226,
+231,
+236,
+241)
+
+x <- c(
+203,
+204,
+213,
+230,
+247,
+237,
+252,
+264,
+268)
+
+j <- which(str_detect(gjsf_elev$summitCode, paste0(x, collapse = "|")))
+```
+
+
+
+
 ```{r, results='hide', eval=FALSE}
 # loop over each bounding box, get the DSM raster 
 # and find the AZ polygon and save as geoJSON
@@ -163,9 +209,9 @@ unlink(paste0(this_dir, "/from_url_req/"),
        recursive = TRUE)
 
 # n= 347
-for(i in 305:nrow(gjsf_elev)){
+for(i in j){
   
-  #  i <- which(gjsf_elev$summitCode == "W7W/OK-185")
+ # i <- which(gjsf_elev$summitCode == "W7W/OK-192")
   
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
@@ -316,20 +362,20 @@ lidar_cropped <-
 unlink(paste0(this_dir, "/from_url_req/"), recursive = TRUE)
 
 # # take a look
-# ggplot() +
-#   geom_spatraster(data = lidar_cropped) +
-#  #  geom_spatraster(data = m) +
-#   geom_sf(data = this_summit_nad83) +
-#   geom_sf(data = this_square_nad83,
-#           fill = NA) +
-#   scale_fill_viridis_c(na.value = "white",
-#                        name = "Elevation (ft)") +
-#   annotation_scale(location = "bl",
-#                    width_hint = 0.5,
-#                    pad_y = unit(0.1, "cm"),
-#                    pad_x = unit(0.5, "cm"),
-#                    style =  "ticks") +
-#   coord_sf()
+ggplot() +
+  geom_spatraster(data = lidar_cropped) +
+  # geom_spatraster(data = m) +
+  geom_sf(data = this_summit_nad83) +
+  geom_sf(data = this_square_nad83,
+          fill = NA) +
+  scale_fill_viridis_c(na.value = "white",
+                       name = "Elevation (ft)") +
+  annotation_scale(location = "bl",
+                   width_hint = 0.5,
+                   pad_y = unit(0.1, "cm"),
+                   pad_x = unit(0.5, "cm"),
+                   style =  "ticks") +
+  coord_sf()
 #------------------------------------------------------------------------
 
 # crop the raster to the AZ
@@ -349,37 +395,39 @@ this_summit_point_az <-
 lidar_cropped[lidar_cropped < this_summit_point_az$az_lower_contour_ft] <- NA
 
 # # take a look
-# ggplot() +
-#   geom_spatraster(data = lidar_cropped) +
-#   geom_sf(data = this_summit_nad83) +
-#   geom_sf(data = this_square_nad83,
-#           fill = NA) +
-#   scale_fill_viridis_c(na.value = "white",
-#                        name = "Elevation (ft)") +
-#   annotation_scale(location = "bl",
-#                    width_hint = 0.5,
-#                    pad_y = unit(0.1, "cm"),
-#                    pad_x = unit(0.5, "cm"),
-#                    style =  "ticks") +
-#   coord_sf()
+ggplot() +
+  geom_spatraster(data = lidar_cropped) +
+  geom_sf(data = this_summit_nad83,
+          colour = "white") +
+  geom_sf(data = this_square_nad83,
+          fill = NA,
+           colour = "red") +
+  scale_fill_viridis_c(na.value = "white",
+                       name = "Elevation (ft)") +
+  annotation_scale(location = "bl",
+                   width_hint = 0.5,
+                   pad_y = unit(0.1, "cm"),
+                   pad_x = unit(0.5, "cm"),
+                   style =  "ticks") +
+  coord_sf()
 
 #------------------------------------------------------------------------
 # get extent of the AZ raster as polygon
 az_poly <- st_as_sf(as.polygons(lidar_cropped > -Inf))
 
-# ggplot() +
-# geom_sf(data = this_summit_nad83) +
-# geom_sf(data = az_poly,
-#         colour = "red",
-#         fill = NA) +
-# scale_fill_viridis_c(na.value = "white",
-#                      name = "Elevation (ft)") +
-# annotation_scale(location = "bl",
-#                  width_hint = 0.5,
-#                  pad_y = unit(0.1, "cm"),
-#                  pad_x = unit(0.5, "cm"),
-#                  style =  "ticks") +
-# coord_sf()
+ggplot() +
+geom_sf(data = this_summit_nad83) +
+geom_sf(data = az_poly,
+        colour = "red",
+        fill = NA) +
+scale_fill_viridis_c(na.value = "white",
+                     name = "Elevation (ft)") +
+annotation_scale(location = "bl",
+                 width_hint = 0.5,
+                 pad_y = unit(0.1, "cm"),
+                 pad_x = unit(0.5, "cm"),
+                 style =  "ticks") +
+coord_sf()
 
 # if there are multiple polygons, we only want the one that 
 # contains the summit point when we have multipolys, 
@@ -401,16 +449,16 @@ poly_with_summit <-
         })[[1]]
 
 # # now we see the single polygon that is the activation zone
-# ggplot() +
-#   geom_sf(data = poly_with_summit) +
-#   geom_sf(data = this_summit_nad83) +
-#   coord_sf() +
-#   annotation_scale(location = "bl",
-#                    width_hint = 0.5,
-#                    pad_y = unit(0.1, "cm"),
-#                    pad_x = unit(0.5, "cm"),
-#                    style =  "ticks")
-  
+ggplot() +
+  geom_sf(data = poly_with_summit) +
+  geom_sf(data = this_summit_nad83) +
+  coord_sf() +
+  annotation_scale(location = "bl",
+                   width_hint = 0.5,
+                   pad_y = unit(0.1, "cm"),
+                   pad_x = unit(0.5, "cm"),
+                   style =  "ticks")
+
 
 poly_with_summit <- st_as_sf(st_transform(poly_with_summit, st_crs(this_summit)))
 
@@ -471,7 +519,7 @@ This code block makes an interactive map of the summits and activation zones.
 library(leaflet)
 
 which_summit <- 
-  which(summit_geometry$summit == "W7W_OK_345")
+  which(summit_geometry$summit == "W7W_OK_268")
 
 which_summit_lng_lat <- 
 as.vector(st_coordinates(summit_geometry[which_summit, ])[1,1:2])
@@ -500,23 +548,6 @@ leaflet() %>%
 
 l # open the interactive map for panning and zooming over all the summits
 ```
-
-Problems
-
-OK_108 - w edge
-OK_117 - w edge
-OK_146 - s edge
-OK_193 - e edge
-OK_199 - w edge
-OK_228 - e edge
-OK_238 - s edge
-OK_263 - w edge
-OK_265 - nw cnr
-OK_275 - n edge
-OK_293 - n edge
-OK_296 - n edge
-OK_320 - ns edges
-OK_336 - w edge
 
 
 
