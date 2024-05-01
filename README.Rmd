@@ -47,7 +47,7 @@ Currently this repository has GeoJSON files for activation zones in the followin
 
 - KG (King County): currently visible on [sotl.as](https://sotl.as/summits/W7W/KG)
 
-And we have generated GeoJSON files for activation zones for these regions but we haven't yet sent to sotl.as:
+And I have generated GeoJSON files for activation zones for these regions but I haven't yet sent to sotl.as:
 
 - CW (Central Washington) 
 - LC (Lower Columbia)
@@ -57,10 +57,10 @@ And we have generated GeoJSON files for activation zones for these regions but w
 - FR (Ferry)
 - SN (Snohomish)
 - OK (Okenagen) 
+- NO (Northern Olympics) 
 
 I'm still working on these: 
 
-- NO (Northern Olympics) do QC
 - WH (Whatcom) do QC
 - PL (Pacific-Lewis) not finished yet
 

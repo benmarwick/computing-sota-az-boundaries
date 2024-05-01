@@ -77,8 +77,8 @@ following regions in the W7W association and are visible on
 - KG (King County): currently visible on
   [sotl.as](https://sotl.as/summits/W7W/KG)
 
-And we have generated GeoJSON files for activation zones for these
-regions but we haven’t yet sent to sotl.as:
+And I have generated GeoJSON files for activation zones for these
+regions but I haven’t yet sent to sotl.as:
 
 - CW (Central Washington)
 - LC (Lower Columbia)
@@ -87,19 +87,21 @@ regions but we haven’t yet sent to sotl.as:
 - CH (Chelan)
 - FR (Ferry)
 - SN (Snohomish)
+- OK (Okenagen)
+- NO (Northern Olympics)
 
 I’m still working on these:
 
-- OK (Okenagen) do QC
-- NO (Northern Olympics) do QC
 - WH (Whatcom) do QC
-- SN (Snohomish) do QC
 - PL (Pacific-Lewis) not finished yet
 
 And these are in the queue to work on next:
 
-ST WA-Stevens 152 SO WA-Southern Olympics 122 MC WA-Middle Columbia 95
-PO WA-Pend Oreille 82 WE WA-Washington East
+- ST WA-Stevens 152.  
+- SO WA-Southern Olympics 122.  
+- MC WA-Middle Columbia 95.  
+- PO WA-Pend Oreille 82  
+- WE WA-Washington East
 
 ### Licenses
 
