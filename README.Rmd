@@ -56,10 +56,10 @@ And we have generated GeoJSON files for activation zones for these regions but w
 - CH (Chelan)
 - FR (Ferry)
 - SN (Snohomish)
+- OK (Okenagen) 
 
 I'm still working on these: 
 
-- OK (Okenagen) do QC
 - NO (Northern Olympics) do QC
 - WH (Whatcom) do QC
 - PL (Pacific-Lewis) not finished yet
