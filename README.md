@@ -74,8 +74,7 @@ Currently this repository has GeoJSON files for activation zones in the
 following regions in the W7W association and are visible on
 [sotl.as](https://sotl.as):
 
-- KG (King County): currently visible on
-  [sotl.as](https://sotl.as/summits/W7W/KG)
+- [KG (King County)](https://sotl.as/summits/W7W/KG)
 
 And I have generated GeoJSON files for activation zones for these
 regions but I haven’t yet sent to sotl.as:
@@ -89,17 +88,14 @@ regions but I haven’t yet sent to sotl.as:
 - SN (Snohomish)
 - OK (Okenagen)
 - NO (Northern Olympics)
+- WH (Whatcom)
+- PL (Pacific-Lewis)
+- ST (Stevens)
 
 I’m still working on these:
 
-- WH (Whatcom) do QC
-- PL (Pacific-Lewis) not finished yet
-
-And these are in the queue to work on next:
-
-- ST WA-Stevens 152.  
-- SO WA-Southern Olympics 122.  
-- MC WA-Middle Columbia 95.  
+- SO WA-Southern Olympics 122  
+- MC WA-Middle Columbia 95  
 - PO WA-Pend Oreille 82  
 - WE WA-Washington East
 
