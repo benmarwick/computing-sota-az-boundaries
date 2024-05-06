@@ -58,13 +58,10 @@ And I have generated GeoJSON files for activation zones for these regions but I 
 - SN (Snohomish)
 - OK (Okenagen) 
 - NO (Northern Olympics) 
+- WH (Whatcom) 
+- PL (Pacific-Lewis)
 
 I'm still working on these: 
-
-- WH (Whatcom) do QC
-- PL (Pacific-Lewis) not finished yet
-
-And these are in the queue to work on next:
 
 - ST	WA-Stevens	152.   
 - SO	WA-Southern Olympics	122.   
