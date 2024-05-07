@@ -162,21 +162,6 @@ This chunk of code takes several hours to run and downloads raster tiles on each
 # need to check
 check <- c(
 "056", # n edge -> no lidar data
-"067",   # too big -> done
-"069",   # too big -> done
-"077",   # too big -> done
-"082",   # too big -> done
-"090",   # too big  -> done
-"091",   # too big  -> done
-"093",   # e edge  -> done
-"100",   # too big  -> done
-"101",   # too big  -> done
-"104",   # too big  -> done
-"105",   # too big -> done
-"107",   # too big  -> done
-"110",   # too big  -> done
-"117",   # too big  -> done
-"119"   # too big
 )
 
 j <- which(str_detect(gjsf_elev$summitCode, paste0(check, collapse = "|")))
@@ -194,7 +179,7 @@ unlink(paste0(this_dir, "/from_url_req/"),
 # n = 122 for SO
 for(i in 1:nrow(gjsf_elev)){
   
- i <- j[15]
+ i <- j[16]
   this_summit <- gjsf_elev[i, ] 
   this_square <- gjsf_elev_buf_sq_df[i, ]
   
@@ -454,9 +439,6 @@ geojsonio::geojson_write(poly_with_summit,
 }
 ```
 
-
-
-
 After running the code block above we now have one GeoJSON file per summit with a polygon defining its activation zone in our `/output` directory.
 
 ### Inspect all the summits and activation zones in our set
@@ -525,11 +507,13 @@ l # open the interactive map for panning and zooming over all the summits
 Panel of static plots to inspect a batch
 
 
+056 # n edge
+
 ```{r}
 library(cowplot) 
 
 # inspect a batch
-n <- 100:108
+n <- 100:109
 list_plots <- vector("list", length = (max(n) - n[1]))
 for(i in 1:length(n)){
 
@@ -558,7 +542,7 @@ plot_grid(plotlist = list_plots,
 
 # check specific AZ
 summit_geometry %>% 
-  filter(summit == "W7W_SO_103") %>% 
+  filter(summit == "W7W_SO_056") %>% 
 ggplot() +
   geom_sf() +
  annotation_scale(location = "bl",
