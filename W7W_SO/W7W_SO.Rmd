@@ -1,0 +1,574 @@
+---
+output: github_document
+always_allow_html: true
+leafletmap: yes
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  dpi=600,
+  fig.width=7)
+```
+
+# Computing Activation Zone Boundaries for [SOTA](https://www.sota.org.uk/) Summits in W7W-SO
+
+Southern Olympics
+
+### Prepare the summit locations and bounding boxes
+
+Let's load the libraries we'll need
+
+```{r}
+library(raster)
+library(terra)
+library(tidyterra)
+library(ggplot2)
+library(sf)
+library(tidyverse)
+library(ggrepel)
+library(ggspatial)
+library(httr2)
+```
+
+Import a GeoJSON file containing the locations and elevations of SOTA summits. I got these data from the SOTA API.
+
+```{r}
+# get all summits via the SOTA API
+
+this_region <- "SO"
+
+library(rvest)
+gjsf <-  httr::GET(paste0("https://api2.sota.org.uk/api/regions/W7W/",
+                          this_region)) %>% 
+            httr::content(., as = "text")%>% 
+            jsonlite::fromJSON() %>% 
+            purrr::pluck("summits") %>% 
+            tibble() %>% 
+  st_as_sf(coords =  c("gridRef1",
+                       "gridRef2"),
+           crs = st_crs(4326))
+
+this_dir <- here::here(paste0("W7W_", this_region))
+```
+
+Prepare to query the WA DNR LIDAR imagery. This gives us every layer currently available, so we don't need to manually check for coverage. 
+
+```{r}
+# get IDs for all the various LIDAR datasets from the WA DNR
+x <-  read_file ("lidar-ids.txt")
+
+lidar_ids <- 
+str_remove_all(x, "h") %>% 
+  str_split("%2C") %>% 
+  unlist() %>% 
+  parse_number() %>% 
+  -1 %>% # these are the IDs for wadnr_hillshade, looks like the DTM is simply 1 less
+  str_c( collapse = "%2C") 
+```
+
+Extract the location coordinates into columns so we can use them later, and create a column for elevation in meters because our raster data is in meters.
+
+```{r}
+# make sf data frame and get coords into cols we can use
+gjsf_elev <- 
+gjsf %>% 
+  mutate(elev_m = altM,
+         elev_ft = altFt) %>% 
+  mutate(x = st_coordinates(geometry)[,"X"],
+         y = st_coordinates(geometry)[,"Y"]) 
+```
+
+Create a square buffer area around each summit, with the summit in the center. This is the area that we will download a raster of elevation data to compute the activation zone. This area is good enough for most summits, but for a few summits with very large activation zones it's too small, we must increase the buffer side length to ensure we capture the full area of the activation zone. I did this manually for the small number of summits that needed it. 
+
+```{r}
+# make a single square buffer for each point
+# Function to create the square buffers
+# https://stackoverflow.com/a/70372149/1036500
+bSquare <- function(x, a) {
+  a <- sqrt(a)/2
+  return( sf::st_buffer(x, dist = a, nQuadSegs=1, 
+                        endCapStyle = "SQUARE") )
+}
+
+# get a buffer zone of a certain area
+buffer_side_length <- 1e7 # 100 is a 10x10, this is the value we manually adjust to manage buffer area, to capture the biggest AZ
+gjsf_elev_buf <- 
+  bSquare(gjsf_elev,
+          buffer_side_length)
+
+gjsf_elev_buf_sq <- vector("list", nrow(gjsf_elev_buf))
+for(i in 1:nrow(gjsf_elev_buf)){
+  gjsf_elev_buf_sq[[i]] <- 
+    st_bbox(gjsf_elev_buf[i,]) %>%
+    st_as_sfc() %>%
+    st_as_sf()
+}
+
+gjsf_elev_buf_sq_df <- 
+  bind_rows(gjsf_elev_buf_sq)
+```
+
+Take a look at the buffer zones and summit points altogether
+
+```{r}
+ggplot() + 
+  geom_sf(data = gjsf_elev_buf_sq_df,
+           colour = "red", fill = NA) +
+  geom_sf(data = gjsf,
+          size = 0.1) +
+  coord_sf() +
+  annotation_scale(location = "bl", 
+                   width_hint = 0.5) +
+  theme_minimal()
+```
+
+Convert the buffer zone into a list of bounding box coordinates to input into the raster download function
+
+```{r}
+# get list of bounding boxes coords
+gjsf_elev_buf_sq_bbx <- vector("list", nrow(gjsf_elev_buf_sq_df))
+for(i in 1:nrow(gjsf_elev_buf_sq_df)){
+  gjsf_elev_buf_sq_bbx[[i]] <- 
+    gjsf_elev_buf_sq_df$x[i] %>% 
+    st_coordinates() %>% 
+    as.data.frame() %>% 
+    select(X, Y)
+}
+```
+
+### Iterate over each summit to compute the activation zone polygon
+
+Here is a loop that takes each summit and its bounding box and:
+
+-   downloads some raster tiles to cover the bounding box area
+-   if there are multiple rasters for an area, merge them, and if they have different resolutions, downsample the high resolution rasters so they all have the same resolution 
+-   then selects all the pixels in the raster that have an elevation value between the summit elevation and 25m below that elevation
+-   then draw a polygon around those pixels
+-   then drop polygons that don't contain the summit point, or are with 20 m of it (since a few summits are outside of their activation zone)
+-   then write the polygon of the activation zone to a GeoJSON file
+
+This chunk of code takes several hours to run and downloads raster tiles on each iteration of the loop. 
+
+
+
+```{r}
+
+# need to check
+check <- c(
+"056", # n edge -> no lidar data
+"067",   # too big -> done
+"069",   # too big -> done
+"077",   # too big -> done
+"082",   # too big -> done
+"090",   # too big  -> done
+"091",   # too big  -> done
+"093",   # e edge  -> done
+"100",   # too big  -> done
+"101",   # too big  -> done
+"104",   # too big  -> done
+"105",   # too big -> done
+"107",   # too big  -> done
+"110",   # too big  -> done
+"117",   # too big  -> done
+"119"   # too big
+)
+
+j <- which(str_detect(gjsf_elev$summitCode, paste0(check, collapse = "|")))
+```
+
+
+```{r, results='hide', eval=FALSE}
+# loop over each bounding box, get the DSM raster 
+# and find the AZ polygon and save as geoJSON
+
+az_elev_m <- 25 # AZ is area -25m elevation from summit
+unlink(paste0(this_dir, "/from_url_req/"),
+       recursive = TRUE)
+
+# n = 122 for SO
+for(i in 1:nrow(gjsf_elev)){
+  
+ i <- j[15]
+  this_summit <- gjsf_elev[i, ] 
+  this_square <- gjsf_elev_buf_sq_df[i, ]
+  
+  print(paste0("Starting work on the AZ for ", this_summit$summitCode,
+               "..."))
+
+# simplify bounding box coords
+bbx_m <- 
+  gjsf_elev_buf_sq_df[i, ] %>% 
+  st_cast("POINT") %>% 
+  st_coordinates()
+
+# construct URL to query the LIDAR data portal using our bbox coords
+url <- paste0("https://lidarportal.dnr.wa.gov/download?geojson=%7B%22type%22%3A%22Polygon%22%2C%22",
+              "coordinates%22%3A%5B%5B%5B",
+              bbx_m[1,1], "%2C", bbx_m[1,2], "%5D%2C%5B",
+              bbx_m[2,1], "%2C", bbx_m[2,2], "%5D%2C%5B", 
+              bbx_m[3,1], "%2C", bbx_m[3,2], "%5D%2C%5B",
+              bbx_m[4,1], "%2C", bbx_m[4,2], "%5D%2C%5B",
+              bbx_m[5,1], "%2C", bbx_m[5,2], "%5D%5D%5D%7D",
+              "&ids=",
+            860 # lidar_ids
+) 
+
+# when we get an error, search for the summit on sotl.as, open the summit in caltopo, paste the coords into the lidar URL, select the summit and see what LIDAR dataset is available. 
+
+print(paste0("Downloading LIDAR data for ", this_summit$summitCode,
+             "..."))
+
+# send our query to the LIDAR portal, unzip the response and import the tif file
+req <- request(url)
+
+# move to the next item in the loop if we get an error contacting the LIDAR server
+skip_to_next <- FALSE
+tryCatch(
+  resp <- req |> req_perform(),
+    error = function(e) { print(paste0("Server Error for ", 
+                                       this_summit$summitCode)); 
+      skip_to_next <<- TRUE})
+if(skip_to_next) { next } 
+
+# write to disk and unzip
+v = resp_body_raw(resp)
+rm(resp)
+writeBin(v, paste0(this_dir, "/data.zip"))
+rm(v)
+unzip(paste0(this_dir, "/data.zip"), 
+      exdir = paste0(this_dir, "/from_url_req/"))
+unlink(paste0(this_dir, "/data.zip"))
+the_raster_files <-
+  list.files(path = paste0(this_dir, "/from_url_req/"),
+             pattern = ".*dtm.*.tif",
+             full.names = TRUE,
+             ignore.case = TRUE,
+             recursive = TRUE)
+
+#------------------------------------------------------------------------
+# Manage the downloaded tif files, in case there are multiple with 
+# different resolutions
+
+# import into our R session, mostly there are multiple tif 
+# files, but sometimes just one
+if(length(the_raster_files) == 1){
+  
+  # just one raster
+  m <- rast(the_raster_files)
+  
+} else {
+
+  # more than one, and maybe with different resolutions
+  
+rasters_res_tbl <- 
+tibble(
+  file = the_raster_files,
+  res = map_dbl(the_raster_files, 
+                ~res(rast(.x))[[1]])
+) %>% 
+  # make sure hi res is first
+  arrange(desc(res))
+
+res_n <- unique(rasters_res_tbl$res)
+
+if(length(res_n) == 1 ) {
+  # if all the same resolution 
+     m <-  sprc(rasters_res_tbl$file[ rasters_res_tbl$res == res_n ])
+     
+           print(paste0("Merging LIDAR raster files with the same resolution for ", this_summit$summitCode,
+             "..."))
+           
+     m <- terra::merge(m, gdal=c("BIGTIFF=YES", "NUM_THREADS = ALL_CPUS") )
+} else {
+  # if not all the same resolution 
+
+# create a list of rasters where we've merged together files with the same
+# resolution, if there are multiples
+list_of_rasters <- vector("list", length = length(res_n))
+
+for(i in 1:length(res_n)){
+  
+  the_res <- res_n[i]
+  
+  if(sum(rasters_res_tbl$res == the_res) == 1){
+    # if just one raster of that resolution
+    list_of_rasters[[i]] <- rast(rasters_res_tbl$file[ rasters_res_tbl$res == the_res ])
+  } else {
+    # if multiple raster files of that resolution
+    
+      print(paste0("Merging LIDAR raster files with the same resolution for ",
+                   this_summit$summitCode,
+             "..."))
+    
+    list_of_rasters[[i]]  <-  
+      sprc(rasters_res_tbl$file[ rasters_res_tbl$res == the_res ])
+    list_of_rasters[[i]]  <- 
+      terra::merge(list_of_rasters[[i]], 
+                   gdal=c("BIGTIFF=YES", 
+                          "NUM_THREADS = ALL_CPUS") )
+  }
+  
+}
+
+# downsample the hi-res raster to match the low-res raster, assuming we
+# have only two different resolutions of rasters here, and so only a list o
+# of two items, hopefully this is true!
+
+# in case CRS are not the same
+  crs(list_of_rasters[[1]]) <-  crs(list_of_rasters[[2]])
+  
+  print(paste0("Merging LIDAR raster files with different resolutions for ", this_summit$summitCode,
+             "..."))
+  
+  # https://gis.stackexchange.com/a/423700
+  e <- exactextractr::exact_resample(list_of_rasters[[2]], #. low res raster,
+                                     list_of_rasters[[1]], #  high res raster
+                                     'mean')
+  
+  m <- terra::merge(e,   # output from previous
+                    list_of_rasters[[1]])  # high res
+  
+}
+}
+
+#------------------------------------------------------------------------
+
+# transform summit and bounding box coords 
+# to the projection of LIDAR data
+this_square_nad83 <- st_transform(this_square, st_crs(m))
+this_summit_nad83 <- st_transform(this_summit, st_crs(m))
+
+# subset LIDAR data that fills just this square
+lidar_cropped <- 
+  terra::crop(m, this_square_nad83)
+
+# delete downloaded files
+unlink(paste0(this_dir, "/from_url_req/"), recursive = TRUE)
+
+# # take a look
+ggplot() +
+  geom_spatraster(data = lidar_cropped) +
+ #  geom_spatraster(data = m) +
+  geom_sf(data = this_summit_nad83) +
+  geom_sf(data = this_square_nad83,
+          fill = NA) +
+  scale_fill_viridis_c(na.value = "white",
+                       name = "Elevation (ft)") +
+  annotation_scale(location = "bl",
+                   width_hint = 0.5,
+                   pad_y = unit(0.1, "cm"),
+                   pad_x = unit(0.5, "cm"),
+                   style =  "ticks") +
+  coord_sf()
+#------------------------------------------------------------------------
+
+# crop the raster to the AZ
+lidar_cropped_max_elev_ft <- minmax(lidar_cropped)[2]
+
+# define elevation contour that bounds the AZ
+this_summit_point_az <- 
+  this_summit_nad83 %>% 
+  mutate(lidar_cropped_max_elev_ft = lidar_cropped_max_elev_ft, 
+         lidar_cropped_max_elev_m = lidar_cropped_max_elev_ft / 3.2808399,
+         az_lower_contour = ifelse(elev_m <= lidar_cropped_max_elev_m,
+                                   elev_m - az_elev_m,         
+                                   lidar_cropped_max_elev_m - az_elev_m ),  
+         # SOTA summit data does not always match raster data
+         az_lower_contour_ft = az_lower_contour * 3.2808399) 
+
+# subset the summit point that is in this bbox
+lidar_cropped[lidar_cropped < this_summit_point_az$az_lower_contour_ft] <- NA
+
+# # take a look
+ggplot() +
+  geom_spatraster(data = lidar_cropped) +
+  geom_sf(data = this_summit_nad83) +
+  geom_sf(data = this_square_nad83,
+          fill = NA) +
+  scale_fill_viridis_c(na.value = "white",
+                       name = "Elevation (ft)") +
+  annotation_scale(location = "bl",
+                   width_hint = 0.5,
+                   pad_y = unit(0.1, "cm"),
+                   pad_x = unit(0.5, "cm"),
+                   style =  "ticks") +
+  coord_sf()
+
+#------------------------------------------------------------------------
+# get extent of the AZ raster as polygon
+az_poly <- st_as_sf(as.polygons(lidar_cropped > -Inf))
+
+# if there are multiple polygons, we only want the one that 
+# contains the summit point when we have multipolys, 
+# we just want the one with the summit in it
+
+# dissolve all into one polygon
+df_union_cast <- sf::st_union(sf::st_as_sf(az_poly))
+df_union_cast <- st_cast(df_union_cast, "POLYGON")
+
+poly_with_summit <- 
+  apply(st_is_within_distance(df_union_cast, 
+                              this_summit_nad83, 
+                              sparse = FALSE,
+                              dist = 5), 2, # within or X m outside of,
+        # because some summits are just outside of their nearest polygon
+        function(col) { 
+          df_union_cast[which(col), ]
+        })[[1]]
+
+# # now we see the single polygon that is the activation zone
+ggplot() +
+  geom_sf(data = poly_with_summit) +
+  geom_sf(data = this_summit_nad83) +
+  coord_sf() +
+  annotation_scale(location = "bl",
+                   width_hint = 0.5,
+                   pad_y = unit(0.1, "cm"),
+                   pad_x = unit(0.5, "cm"),
+                   style =  "ticks")
+
+poly_with_summit <- st_as_sf(st_transform(poly_with_summit, st_crs(this_summit)))
+
+#------------------------------------------------------------------------
+# saving 
+
+print(paste0("Saving GeoJSON file for ", this_summit$summitCode,
+             "..."))
+
+# write AZ polygon to a GeoJSON file
+file_name <- paste0(paste0(this_dir, "/output/"), 
+                    str_replace_all(this_summit$summitCode, "/|-", "_"), 
+                    ".geojson")
+
+# export AZ polygon as a GeoJSON file
+geojsonio::geojson_write(poly_with_summit, 
+                         file = here::here(file_name),
+                         quiet = TRUE)
+
+}
+```
+
+
+
+
+After running the code block above we now have one GeoJSON file per summit with a polygon defining its activation zone in our `/output` directory.
+
+### Inspect all the summits and activation zones in our set
+
+Import the GeoJSON files and display the summit points and activation zones polygons on an interactive map. 
+
+```{r results='hide'}
+library(tidyverse)
+library(sf)
+
+# import the GeoJSON files with the AZ polygons
+gjson_files <- 
+  list.files(path = paste0(this_dir, "/output"),
+             full.names = TRUE,
+             recursive = TRUE)
+
+az_files <- 
+  map(gjson_files,
+      st_read,
+      quiet = TRUE) 
+
+names(az_files) <- str_remove_all(basename(gjson_files), 
+                                  "output|.geojson")
+
+summit_geometry <- 
+  bind_rows(az_files, .id = "summit") %>% 
+  select(summit, geometry)
+```
+
+This code block makes an interactive map of the summits and activation zones. 
+
+```{r}
+library(leaflet)
+
+which_summit <- 
+  which(summit_geometry$summit == "W7W_SO_056")
+
+which_summit_lng_lat <- 
+as.vector(st_coordinates(summit_geometry[which_summit, ])[1,1:2])
+
+l <- 
+leaflet() %>% 
+  addProviderTiles("OpenStreetMap") %>% 
+  addPolygons(data = summit_geometry,
+              color = "red", 
+              weight = 1) %>% 
+  addCircleMarkers(data = gjsf %>% 
+                     mutate(summitCode = str_replace_all(summitCode,
+                                                         "/|-", "_")) %>% 
+                     filter(summitCode %in% summit_geometry$summit[which_summit] ),
+                   radius = 1,
+                   weight = 1,
+                   label = ~summitCode,
+                   labelOptions = labelOptions(noHide = T, 
+                                               direction = "top",
+                                               offset = c(0, -15))) %>% 
+  setView(lng = which_summit_lng_lat[1],
+          lat = which_summit_lng_lat[2],  
+           zoom = 16)  %>%
+  addScaleBar()
+
+
+l # open the interactive map for panning and zooming over all the summits
+```
+
+Panel of static plots to inspect a batch
+
+
+```{r}
+library(cowplot) 
+
+# inspect a batch
+n <- 100:108
+list_plots <- vector("list", length = (max(n) - n[1]))
+for(i in 1:length(n)){
+
+ list_plots[[i]] <- 
+   summit_geometry[n[i],] %>% 
+  ggplot() +
+  geom_sf() +
+ annotation_scale(location = "bl",
+              width_hint = 0.5,
+              pad_y = unit(0.1, "cm"),
+              pad_x = unit(0.5, "cm"),
+              style =  "ticks") +
+   ggtitle(label = summit_geometry[n[i],]$summit) +
+   theme(title = element_text(size = 8))
+ 
+ names(list_plots)[i] <-  summit_geometry[n[i],]$summit
+}
+
+plot_grid(plotlist = list_plots,
+          ncol = 4)
+# dev.off()
+```
+
+
+```{r}
+
+# check specific AZ
+summit_geometry %>% 
+  filter(summit == "W7W_SO_103") %>% 
+ggplot() +
+  geom_sf() +
+ annotation_scale(location = "bl",
+              width_hint = 0.5,
+              pad_y = unit(0.1, "cm"),
+              pad_x = unit(0.5, "cm"),
+              style =  "ticks")
+```
+
+
+
+
+
