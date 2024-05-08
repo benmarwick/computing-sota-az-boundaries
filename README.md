@@ -91,11 +91,11 @@ regions but I haven’t yet sent to sotl.as:
 - WH (Whatcom)
 - PL (Pacific-Lewis)
 - ST (Stevens)
+- SO (Southern Olympics)
+- MC (WA-Middle Columbia)
 
 I’m still working on these:
 
-- SO WA-Southern Olympics 122  
-- MC WA-Middle Columbia 95  
 - PO WA-Pend Oreille 82  
 - WE WA-Washington East
 
