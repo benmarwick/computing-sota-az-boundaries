@@ -529,7 +529,7 @@ Panel of static plots to inspect them in batches
 library(cowplot) 
 
 # inspect a batch
-n <- 50:51
+n <- 50:60
 list_plots <- vector("list", length = (max(n) - n[1]))
 for(i in 1:length(n)){
 

@@ -41,7 +41,9 @@ The goal of this repository is to generate polygons that indicate the [activatio
 
 ### This project
 
-The goal of these project is generate activation zone polygons as GeoJSON files that can be integrated into the sotl.as map for W7W. This is inspired by the work done for HB/HB0 and OE, where operators can view the activation zone polygon directly in the sotl.as map  Currently this project only does summits in the W7W area. Here I use the R programming language to access the Washington State's Department of Natural Resources public LIDAR portal: https://lidarportal.dnr.wa.gov/ For each SOTA summit I download a small raster file of elevation data for each summit, and compute the activation zone polygon and save it to a GeoJSON file. Please inspect the R Markdown files in this repository for more details of the calculations.
+The goal of these project is generate activation zone polygons as GeoJSON files that can be integrated into the sotl.as map for W7W. This is inspired by the work done for HB/HB0 and OE, where operators can view the activation zone polygon directly in the sotl.as map. Currently this project has computed polygons for activation zones for `r length(list.files(pattern = ".geojson", recursive = TRUE))` summits in the W7W area. Missing polygons are due to limitations in the coverage of the lidar data. 
+
+Here I use the R programming language to access the Washington State's Department of Natural Resources public LIDAR portal: https://lidarportal.dnr.wa.gov/ For each SOTA summit I download a small raster file of elevation data for each summit, and compute the activation zone polygon and save it to a GeoJSON file. Please inspect the R Markdown files in this repository for more details of the calculations. 
 
 Currently this repository has GeoJSON files for activation zones in the following regions in the W7W association and are visible on [sotl.as](https://sotl.as):
 
