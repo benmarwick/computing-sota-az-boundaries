@@ -93,11 +93,8 @@ regions but I haven’t yet sent to sotl.as:
 - ST (Stevens)
 - SO (Southern Olympics)
 - MC (WA-Middle Columbia)
-- PO (Pend Oreille)
-
-I’m still working on these:
-
-- WE WA-Washington East
+- PO (Pend Oreille)  
+- WE (Washington East)
 
 ### Licenses
 
