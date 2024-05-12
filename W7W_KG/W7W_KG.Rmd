@@ -50,6 +50,33 @@ Import a GeoJSON file containing the locations and elevations of SOTA summits. I
 gjsf <- st_read("input/W7W_KG.geojson", quiet = TRUE)
 ```
 
+Compare with the number of summits on sotadata via their API
+
+```{r}
+# get all summits via the SOTA API
+
+this_region <- "KG"
+
+library(rvest)
+gjsf_api <-  httr::GET(paste0("https://api2.sota.org.uk/api/regions/W7W/",
+                          this_region)) %>% 
+            httr::content(., as = "text")%>% 
+            jsonlite::fromJSON() %>% 
+            purrr::pluck("summits") %>% 
+            tibble() %>% 
+  st_as_sf(coords =  c("gridRef1",
+                       "gridRef2"),
+           crs = st_crs(4326))
+
+this_dir <- here::here(paste0("W7W_", this_region))
+
+setdiff(gjsf$summitCode,
+        gjsf_api$summitCode)
+
+
+```
+
+
 Extract the location coordinates into columns so we can use them later, and create a column for elevation in meters because our raster data is in meters.
 
 ```{r}

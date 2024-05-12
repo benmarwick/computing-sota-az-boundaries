@@ -62,7 +62,7 @@ The goal of these project is generate activation zone polygons as
 GeoJSON files that can be integrated into the sotl.as map for W7W. This
 is inspired by the work done for HB/HB0 and OE, where operators can view
 the activation zone polygon directly in the sotl.as map. Currently this
-project has computed polygons for activation zones for 2286 summits in
+project has computed polygons for activation zones for 2285 summits in
 the W7W area. Missing polygons are due to limitations in the coverage of
 the lidar data.
 
@@ -75,30 +75,23 @@ the R Markdown files in this repository for more details of the
 calculations.
 
 Currently this repository has GeoJSON files for activation zones in the
-following regions in the W7W association and are visible on
-[sotl.as](https://sotl.as):
+following regions in the W7W association:
 
-- [KG (King County)](https://sotl.as/summits/W7W/KG)
-
-And I have generated GeoJSON files for activation zones for these
-regions but I haven’t yet sent to sotl.as:
-
-- CW (Central Washington)
-- LC (Lower Columbia)
-- RS (Rainer Salish)
-- SK (Skagit)
-- CH (Chelan)
-- FR (Ferry)
-- SN (Snohomish)
-- OK (Okenagen)
-- NO (Northern Olympics)
-- WH (Whatcom)
-- PL (Pacific-Lewis)
-- ST (Stevens)
-- SO (Southern Olympics)
-- MC (WA-Middle Columbia)
-- PO (Pend Oreille)  
-- WE (Washington East)
+\|Region \|Code \| Number of summits\| Number of activation zones\|
+Percentage of summits with activation zones\|
+\|:———————\|:—-\|—————–:\|————————–:\|——————————————-:\| \|WA-Washington
+East \|WE \| 55\| 53\| 96.36364\| \|WA-Stevens \|ST \| 152\| 150\|
+98.68421\| \|WA-Southern Olympics \|SO \| 122\| 121\| 99.18033\|
+\|WA-Snohomish \|SN \| 184\| 136\| 73.91304\| \|WA-Skagit \|SK \| 181\|
+131\| 72.37569\| \|WA-Rainier-Salish \|RS \| 91\| 91\| 100.00000\|
+\|WA-Whatcom \|WH \| 207\| 102\| 49.27536\| \|WA-Pend Oreille \|PO \|
+82\| 78\| 95.12195\| \|WA-Pacific-Lewis \|PL \| 168\| 163\| 97.02381\|
+\|WA-Okanogan \|OK \| 347\| 140\| 40.34582\| \|WA-Northern Olympics \|NO
+\| 260\| 260\| 100.00000\| \|WA-Middle Columbia \|MC \| 95\| 89\|
+93.68421\| \|WA-Lower Columbia \|LC \| 169\| 169\| 100.00000\| \|WA-King
+\|KG \| 160\| 160\| 100.00000\| \|WA-Ferry \|FR \| 137\| 72\| 52.55474\|
+\|WA-Central Washington \|CW \| 108\| 100\| 92.59259\| \|WA-Chelan \|CH
+\| 244\| 244\| 100.00000\|
 
 ### Licenses
 
