@@ -41,17 +41,40 @@ The goal of this repository is to generate polygons that indicate the [activatio
 
 ### This project
 
-The goal of these project is generate activation zone polygons as GeoJSON files that can be integrated into the sotl.as map for W7W. This is inspired by the work done for HB/HB0 and OE, where operators can view the activation zone polygon directly in the sotl.as map. Currently this project has computed polygons for activation zones for `r length(list.files(pattern = ".geojson", recursive = TRUE))` summits in the W7W area. Missing polygons are due to limitations in the coverage of the lidar data. 
+```{r}
+#| echo: false
 
-Here I use the R programming language to access the Washington State's Department of Natural Resources public LIDAR portal: https://lidarportal.dnr.wa.gov/ For each SOTA summit I download a small raster file of elevation data for each summit, and compute the activation zone polygon and save it to a GeoJSON file. Please inspect the R Markdown files in this repository for more details of the calculations. 
+library(tidyverse)
+
+n_activation_zones <- 
+  length(list.files(pattern = "[0-9]{3}.geojson", recursive = TRUE))
+
+# how many summits in the SOTA program? Get data from SOTA API
+library(rvest)
+summits_in_sota <-  
+  httr::GET("https://api2.sota.org.uk/api/associations/w7w") %>% 
+            httr::content(., as = "text") %>% 
+            jsonlite::fromJSON() %>% 
+            purrr::pluck("regions") %>% 
+            tibble() %>% 
+  select(regionName, 
+         regionCode,
+        summits )
+
+n_total_summits_w7w <- sum(summits_in_sota$summits)
+
+perc <- round(n_activation_zones / n_total_summits_w7w * 100, 1)
+```
+
+
+The goal of these project is generate activation zone polygons as GeoJSON files that can be integrated into the [sotl.as map](https://sotl.as/summits/W7W) for W7W. This is inspired by the work done for HB/HB0 and OE, where operators can view the activation zone polygon directly in the sotl.as map. Currently this project has computed polygons for activation zones for `r n_activation_zones` summits in the W7W area. The [official SOTA database](https://www.sotadata.org.uk/en/association/W7W) has `r n_total_summits_w7w` summits recorded for W7W, so `r perc`% of all summits in W7W have an activation zone. We're unable to compute activation zones for summits in areas that currently do not have lidar imagery.
+
+Here I use the R programming language to access the [Washington State's Department of Natural Resources public LIDAR portal](https://lidarportal.dnr.wa.gov/). In brief, my method was to automatically download a small raster file of elevation data for each summit, compute the activation zone polygon, and save it to a GeoJSON file. Please inspect the R Markdown files in this repository for more details of the calculations. I visually inspected each activation zone polygon to ensure there were no errors, but if you find something that looks odd, please let me know and I'll take another look.  
 
 Currently this repository has GeoJSON files for activation zones in the following regions in the W7W association:
 
 ```{r}
 #| echo: false
-
-
-library(tidyverse)
 
 # how many summits do we have activation zones for?
 w7w_regions <- 
@@ -66,32 +89,21 @@ summits_per_region_with_az <-
   tibble(summits_with_activation_zones = .,
          regionCode = w7w_regions)
 
-
-# how many summits in the SOTA program? Get data from SOTA API
-library(rvest)
-summits_in_sota <-  
-  httr::GET("https://api2.sota.org.uk/api/associations/w7w") %>% 
-            httr::content(., as = "text") %>% 
-            jsonlite::fromJSON() %>% 
-            purrr::pluck("regions") %>% 
-            tibble() %>% 
-  select(regionName, 
-         regionCode,
-        summits )
-
 # combine the tables
 summit_counts_and_per_with_az <- 
 summits_in_sota %>% 
   left_join(summits_per_region_with_az,
             join_by("regionCode")) %>% 
-  mutate(percent_summits_with_az = summits_with_activation_zones / summits * 100 ) %>% 
+  mutate(percent_summits_with_az = round(summits_with_activation_zones / summits * 100, 1 )) %>% 
   rename(Region = regionName ,
         Code = regionCode,
         `Number of summits` = summits,
        `Number of activation zones` =  summits_with_activation_zones,
-       `Percentage of summits\n with activation zones` = percent_summits_with_az) 
+       `Percentage of summits\n with activation zones` = percent_summits_with_az) %>% 
+  arrange(desc(`Percentage of summits\n with activation zones`),
+          desc( `Number of activation zones`) )
 
-knitr::kable(summit_counts_and_per_with_az, format = 'markdown')
+knitr::kable(summit_counts_and_per_with_az, format = 'html')
 
 ```
 

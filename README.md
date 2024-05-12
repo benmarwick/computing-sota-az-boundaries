@@ -59,39 +59,341 @@ zone:
 ### This project
 
 The goal of these project is generate activation zone polygons as
-GeoJSON files that can be integrated into the sotl.as map for W7W. This
-is inspired by the work done for HB/HB0 and OE, where operators can view
-the activation zone polygon directly in the sotl.as map. Currently this
-project has computed polygons for activation zones for 2285 summits in
-the W7W area. Missing polygons are due to limitations in the coverage of
-the lidar data.
+GeoJSON files that can be integrated into the [sotl.as
+map](https://sotl.as/summits/W7W) for W7W. This is inspired by the work
+done for HB/HB0 and OE, where operators can view the activation zone
+polygon directly in the sotl.as map. Currently this project has computed
+polygons for activation zones for 2257 summits in the W7W area. The
+[official SOTA database](https://www.sotadata.org.uk/en/association/W7W)
+has 2762 summits recorded for W7W, so 81.7% of all summits in W7W have
+an activation zone. We’re unable to compute activation zones for summits
+in areas that currently do not have lidar imagery.
 
-Here I use the R programming language to access the Washington State’s
-Department of Natural Resources public LIDAR portal:
-<https://lidarportal.dnr.wa.gov/> For each SOTA summit I download a
-small raster file of elevation data for each summit, and compute the
-activation zone polygon and save it to a GeoJSON file. Please inspect
-the R Markdown files in this repository for more details of the
-calculations.
+Here I use the R programming language to access the [Washington State’s
+Department of Natural Resources public LIDAR
+portal](https://lidarportal.dnr.wa.gov/). In brief, my method was to
+automatically download a small raster file of elevation data for each
+summit, compute the activation zone polygon, and save it to a GeoJSON
+file. Please inspect the R Markdown files in this repository for more
+details of the calculations. I visually inspected each activation zone
+polygon to ensure there were no errors, but if you find something that
+looks odd, please let me know and I’ll take another look.
 
 Currently this repository has GeoJSON files for activation zones in the
 following regions in the W7W association:
 
-\|Region \|Code \| Number of summits\| Number of activation zones\|
-Percentage of summits with activation zones\|
-\|:———————\|:—-\|—————–:\|————————–:\|——————————————-:\| \|WA-Washington
-East \|WE \| 55\| 53\| 96.36364\| \|WA-Stevens \|ST \| 152\| 150\|
-98.68421\| \|WA-Southern Olympics \|SO \| 122\| 121\| 99.18033\|
-\|WA-Snohomish \|SN \| 184\| 136\| 73.91304\| \|WA-Skagit \|SK \| 181\|
-131\| 72.37569\| \|WA-Rainier-Salish \|RS \| 91\| 91\| 100.00000\|
-\|WA-Whatcom \|WH \| 207\| 102\| 49.27536\| \|WA-Pend Oreille \|PO \|
-82\| 78\| 95.12195\| \|WA-Pacific-Lewis \|PL \| 168\| 163\| 97.02381\|
-\|WA-Okanogan \|OK \| 347\| 140\| 40.34582\| \|WA-Northern Olympics \|NO
-\| 260\| 260\| 100.00000\| \|WA-Middle Columbia \|MC \| 95\| 89\|
-93.68421\| \|WA-Lower Columbia \|LC \| 169\| 169\| 100.00000\| \|WA-King
-\|KG \| 160\| 160\| 100.00000\| \|WA-Ferry \|FR \| 137\| 72\| 52.55474\|
-\|WA-Central Washington \|CW \| 108\| 100\| 92.59259\| \|WA-Chelan \|CH
-\| 244\| 244\| 100.00000\|
+<table>
+<thead>
+<tr>
+<th style="text-align:left;">
+Region
+</th>
+<th style="text-align:left;">
+Code
+</th>
+<th style="text-align:right;">
+Number of summits
+</th>
+<th style="text-align:right;">
+Number of activation zones
+</th>
+<th style="text-align:right;">
+Percentage of summits with activation zones
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+WA-Northern Olympics
+</td>
+<td style="text-align:left;">
+NO
+</td>
+<td style="text-align:right;">
+260
+</td>
+<td style="text-align:right;">
+260
+</td>
+<td style="text-align:right;">
+100.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Chelan
+</td>
+<td style="text-align:left;">
+CH
+</td>
+<td style="text-align:right;">
+244
+</td>
+<td style="text-align:right;">
+244
+</td>
+<td style="text-align:right;">
+100.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Lower Columbia
+</td>
+<td style="text-align:left;">
+LC
+</td>
+<td style="text-align:right;">
+169
+</td>
+<td style="text-align:right;">
+169
+</td>
+<td style="text-align:right;">
+100.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-King
+</td>
+<td style="text-align:left;">
+KG
+</td>
+<td style="text-align:right;">
+160
+</td>
+<td style="text-align:right;">
+160
+</td>
+<td style="text-align:right;">
+100.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Rainier-Salish
+</td>
+<td style="text-align:left;">
+RS
+</td>
+<td style="text-align:right;">
+91
+</td>
+<td style="text-align:right;">
+91
+</td>
+<td style="text-align:right;">
+100.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Southern Olympics
+</td>
+<td style="text-align:left;">
+SO
+</td>
+<td style="text-align:right;">
+122
+</td>
+<td style="text-align:right;">
+121
+</td>
+<td style="text-align:right;">
+99.2
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Stevens
+</td>
+<td style="text-align:left;">
+ST
+</td>
+<td style="text-align:right;">
+152
+</td>
+<td style="text-align:right;">
+150
+</td>
+<td style="text-align:right;">
+98.7
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Pacific-Lewis
+</td>
+<td style="text-align:left;">
+PL
+</td>
+<td style="text-align:right;">
+168
+</td>
+<td style="text-align:right;">
+163
+</td>
+<td style="text-align:right;">
+97.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Washington East
+</td>
+<td style="text-align:left;">
+WE
+</td>
+<td style="text-align:right;">
+55
+</td>
+<td style="text-align:right;">
+53
+</td>
+<td style="text-align:right;">
+96.4
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Pend Oreille
+</td>
+<td style="text-align:left;">
+PO
+</td>
+<td style="text-align:right;">
+82
+</td>
+<td style="text-align:right;">
+78
+</td>
+<td style="text-align:right;">
+95.1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Middle Columbia
+</td>
+<td style="text-align:left;">
+MC
+</td>
+<td style="text-align:right;">
+95
+</td>
+<td style="text-align:right;">
+89
+</td>
+<td style="text-align:right;">
+93.7
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Central Washington
+</td>
+<td style="text-align:left;">
+CW
+</td>
+<td style="text-align:right;">
+108
+</td>
+<td style="text-align:right;">
+100
+</td>
+<td style="text-align:right;">
+92.6
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Snohomish
+</td>
+<td style="text-align:left;">
+SN
+</td>
+<td style="text-align:right;">
+184
+</td>
+<td style="text-align:right;">
+136
+</td>
+<td style="text-align:right;">
+73.9
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Skagit
+</td>
+<td style="text-align:left;">
+SK
+</td>
+<td style="text-align:right;">
+181
+</td>
+<td style="text-align:right;">
+131
+</td>
+<td style="text-align:right;">
+72.4
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Ferry
+</td>
+<td style="text-align:left;">
+FR
+</td>
+<td style="text-align:right;">
+137
+</td>
+<td style="text-align:right;">
+72
+</td>
+<td style="text-align:right;">
+52.6
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Whatcom
+</td>
+<td style="text-align:left;">
+WH
+</td>
+<td style="text-align:right;">
+207
+</td>
+<td style="text-align:right;">
+102
+</td>
+<td style="text-align:right;">
+49.3
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WA-Okanogan
+</td>
+<td style="text-align:left;">
+OK
+</td>
+<td style="text-align:right;">
+347
+</td>
+<td style="text-align:right;">
+140
+</td>
+<td style="text-align:right;">
+40.3
+</td>
+</tr>
+</tbody>
+</table>
 
 ### Licenses
 
