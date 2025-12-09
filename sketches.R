@@ -1,6 +1,60 @@
 
+# explore elevation differences
+
+library(tidyverse)
+
+activation_zone_file_names <- 
+ list.files(pattern = "[0-9]{3}.geojson", 
+            recursive = TRUE,
+            full.names = TRUE)
+
+# how many summits in the SOTA program? Get data from SOTA API
+library(rvest)
+summits_in_sota <-  
+  httr::GET("https://api2.sota.org.uk/api/associations/w7w") %>% 
+  httr::content(., as = "text") %>% 
+  jsonlite::fromJSON() %>% 
+  purrr::pluck("regions") %>% 
+  tibble() %>% 
+  select(regionName, 
+         regionCode,
+         summits )
+
+# slovenia
+# how many summits in the SOTA program? Get data from SOTA API
+library(rvest)
+summits_in_sota <-  
+  httr::GET("https://api2.sota.org.uk/api/associations/s5") %>% 
+  httr::content(., as = "text") %>% 
+  jsonlite::fromJSON() %>% 
+  purrr::pluck("regions") %>% 
+  tibble() %>% 
+  select(regionName, 
+         regionCode,
+         summits )
+
+# regions 
+summits_in_sota$regionCode
+
+library(rvest)
+sota_s5 <-  
+  map(summits_in_sota$regionCode,
+      ~httr::GET(paste0("https://api2.sota.org.uk/api/regions/s5/",
+                          .x)) %>% 
+  httr::content(., as = "text")%>% 
+  jsonlite::fromJSON() %>% 
+  purrr::pluck("summits") %>% 
+  tibble() %>% 
+  st_as_sf(coords =  c("gridRef1",
+                       "gridRef2"),
+           crs = st_crs(4326)))
+
+sota_s5_df <- 
+bind_rows(sota_s5)
 
 
+
+#----------------------------------------------------------------
 # make a URL to see what the lidar coverage is like for a summit
 # open the URL in the clipboard to paste into the browser
 browseURL(
@@ -380,5 +434,65 @@ tibble(
   summit = names(map_dbl(poly_with_summit_max_linear_dim, pluck, 1) ),
   max_dim = map_dbl(poly_with_summit_max_linear_dim, pluck, 1)
 ) %>% View
+
+#---------------------------------------------------------------
+# Explore how to get the LIDAR data sources in a more 
+# complete way. I copy-pasted the LIDAR map site's page source 
+# and saved it as an XML file
+
+library(tidyverse)
+the_xml <- paste0(scan("lidarportal.dnr.wa.gov.xml", 
+                       what = 'character',
+                       sep = ""), collapse  = " ")
+
+dtm_hillshade_download_urls <- 
+  the_xml |> 
+  str_extract_all( 
+    'DTM Hillshade\\<\\/a\\> \\<a class\\=\\"project-control-dataset-download\\" href\\=\\"download\\?ids=\\d+') |> 
+  str_extract_all("\\d+") |> 
+  unlist()
+
+# [1] "1778" "100"  "1646" "1308" "914"  "662"  "101"  "1088" "1754"
+# [10] "357"  "545"  "1320" "1730" "1440" "102"  "103"  "656"  "1832"
+# [19] "668"  "1350" "1550" "352"  "740"  "746"  "1556" "930"  "752" 
+# [28] "104"  "674"  "826"  "1036" "866"  "878"  "884"  "872"  "890" 
+# [37] "1020" "1295" "1544" "1508" "105"  "680"  "756"  "686"  "1058"
+# [46] "311"  "1796" "1082" "1658" "581"  "1718" "106"  "369"  "1640"
+# [55] "966"  "1610" "1616" "1272" "762"  "107"  "1332" "1314" "108" 
+# [64] "1592" "1410" "109"  "304"  "1562" "908"  "110"  "1700" "1760"
+# [73] "111"  "1338" "1094" "1248" "1105" "1108" "1169" "112"  "113" 
+# [82] "1628" "1652" "114"  "1131" "115"  "116"  "1422" "548"  "541" 
+# [91] "537"  "380"  "383"  "533"  "386"  "529"  "389"  "392"  "525" 
+# [100] "521"  "517"  "513"  "395"  "509"  "398"  "401"  "404"  "407" 
+# [109] "505"  "501"  "410"  "413"  "497"  "493"  "489"  "416"  "419" 
+# [118] "422"  "481"  "485"  "477"  "425"  "428"  "474"  "440"  "471" 
+# [127] "467"  "431"  "463"  "434"  "459"  "832"  "1604" "1502" "437" 
+# [136] "455"  "451"  "447"  "443"  "1260" "1808" "117"  "843"  "942" 
+# [145] "118"  "820"  "814"  "1526" "767"  "576"  "1064" "1428" "692" 
+# [154] "698"  "586"  "1100" "1137" "1464" "1032" "1766" "1844" "1452"
+# [163] "1634" "772"  "1664" "1046" "1470" "1670" "1538" "1143" "119" 
+# [172] "1052" "1344" "1149" "1153" "1622" "1676" "120"  "1113" "553" 
+# [181] "1520" "1826" "1242" "1157" "1119" "1814" "1070" "121"  "122" 
+# [190] "704"  "1392" "1163" "1362" "1374" "1688" "856"  "896"  "901" 
+# [199] "1238" "1458" "1496" "123"  "1484" "1748" "861"  "1008" "1002"
+# [208] "972"  "978"  "984"  "990"  "996"  "1724" "558"  "124"  "125" 
+# [217] "811"  "126"  "1694" "561"  "650"  "127"  "1706" "128"  "920" 
+# [226] "778"  "129"  "1326" "1790" "130"  "1398" "1178" "1184" "1278"
+# [235] "1190" "1283" "1289" "1772" "784"  "566"  "571"  "789"  "591" 
+# [244] "131"  "596"  "132"  "601"  "604"  "609"  "612"  "615"  "620" 
+# [253] "846"  "1368" "133"  "1838" "1532" "134"  "1254" "1386" "135" 
+# [262] "794"  "136"  "1380" "1356" "625"  "1490" "798"  "630"  "635" 
+# [271] "1712" "137"  "1196" "1202" "1416" "138"  "1208" "851"  "1076"
+# [280] "1820" "1598" "139"  "363"  "1742" "140"  "1514" "1404" "936" 
+# [289] "141"  "317"  "322"  "328"  "334"  "340"  "142"  "801"  "346" 
+# [298] "143"  "1301" "1026" "960"  "1802" "1214" "710"  "716"  "374" 
+# [307] "722"  "640"  "144"  "1736" "1174" "1784" "1014" "924"  "1682"
+# [316] "1446" "807"  "1220" "145"  "146"  "1226" "147"  "148"  "645" 
+# [325] "948"  "149"  "1266" "1232" "150"  "728"  "954"  "734"  "1476"
+# [334] "1480" "1568"
+
+
+
+
 
 
